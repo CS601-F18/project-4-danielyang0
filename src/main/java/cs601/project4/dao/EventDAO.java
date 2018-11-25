@@ -10,7 +10,6 @@ import cs601.project4.dao.dbtools.DbHelper;
 public class EventDAO {
 	
 	public int addEvent(Event event) throws SQLException {
-		// String sql = "insert into ask_user values(user_seq.nextval,?,?,?,?,?,?,?,?,?,?,?,?)";
 		String sql = "insert into t_event(name,userid,avail,purchased) values(?,?,?,?)";
 		Object[] params = { event.getName() , event.getUserid(), event.getAvail(), event.getPurchased()};
 		return DbHelper.executeSQL(sql, params);
@@ -20,11 +19,16 @@ public class EventDAO {
 		return DbHelper.getResult("select * from t_event", Event.class);
 	}
 	
-	public void decreadAvailByOne(int id) throws SQLException {
-		String sql = "update t_event set avail=avail-1 where id=?";
-		DbHelper.executeSQL(sql, id);
-	}
 	
+	
+	/**
+	 * decrease available tickets of an event if and only if 
+	 * the available tickets after decresement is still larger or equal than 0
+	 * @param eventid
+	 * @param tickets
+	 * @return
+	 * @throws SQLException
+	 */
 	public int decreaseAvail(int eventid, int tickets) throws SQLException {
 		String sql = "update t_event set avail=avail-? WHERE id=? and avail>=?";
 		Object[] params = { tickets, eventid, tickets };

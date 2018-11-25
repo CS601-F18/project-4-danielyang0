@@ -7,7 +7,7 @@ import org.junit.Test;
 public class EventServiceTest {
 	@Test
 	public void testCreateEvent() {
-		EventService es = new EventService();
+		EventServiceImpl es = new EventServiceImpl();
 		try {
 			es.createEvent(2, "outdoor", 7);
 		} catch (SQLException e) {
@@ -17,7 +17,7 @@ public class EventServiceTest {
 	
 	@Test
 	public void testDecreseTicket() throws SQLException {
-		EventService es = new EventService();
+		EventServiceImpl es = new EventServiceImpl();
 		boolean success = es.decreaseTicket(7, 8);
 		System.out.println(success? "success":"fail");
 	}

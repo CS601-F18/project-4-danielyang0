@@ -121,17 +121,15 @@ public class DbHelper {
 	 * Get the last self-increased id in one db connection
 	 * @return
 	 */
-	public static long getLastIncreasedID() {
+	public static int getLastIncreasedID() {
 		String sql = "SELECT LAST_INSERT_ID()";
-		return getScalarResult(sql, BigInteger.class).longValue();
+		return getScalarResult(sql, BigInteger.class).intValue();
 	}
 	
 	public static <T> T getScalarResult(String sql, Class<T> c, Object... params) {
-//		QueryRunner runner = new QueryRunner();
 		SqlExecuter sqlExecuter = new SqlExecuter();
 		try {
 			 T query = sqlExecuter.query(getConnection(), sql, new ScalarHandler<T>(), params);
-			 System.out.println("====");
 			 return query;
 		} catch (SQLException e) {
 			e.printStackTrace();
