@@ -8,11 +8,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -26,13 +30,13 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonSyntaxException;
 
 import cs601.project4.bean.Event;
+import cs601.project4.exception.ParamParseException;
 import cs601.project4.service.EventService;
 import cs601.project4.service.EventServiceImpl;
 import cs601.project4.service.ServiceProxy;
 
 
 public class FrontEndEventServlet extends HttpServlet {
-	Connection conn = null;
 	//	private static Logger logger = Logger.getLogger(EventServlet.class);
 	//	static {
 	//		PropertyConfigurator.configure("./config/log4j.properties");
@@ -44,155 +48,122 @@ public class FrontEndEventServlet extends HttpServlet {
 	 * 
 	 */
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		String requestURI = request.getRequestURI();
-		logger.info(requestURI);
-		String[] splited = requestURI.split("/");
-		if(splited.length == 2) {
-			//GET /events
+		try {
+			ParamParser.parsePath(request, "/events");
 			doGetEvents(response);
-		}else if(splited.length == 3) {
-			//GET /events/{eventid}
-			int eventid = 0;
-			try {
-				eventid = Integer.valueOf(splited[2]);
-			} catch (NumberFormatException e) {
-				logger.info("path: "+requestURI+" : eventid is not an integer");
-				FormatedResponse.get400Response(response, "event id error", "event id is not an integer");
-				return;
-			}
+			return;
+		} catch (ParamParseException e) {
+		}
+		try {
+			Map<String, Object> parsed = ParamParser.parsePath(request, "/events/{eventid:int}");
+			int eventid = (Integer) parsed.get("eventid");
 			doGetOneEvent(response, eventid);
-		}else {
-			logger.info("path: "+requestURI+" : unknown request");
-			FormatedResponse.get400Response(response, "unknown request", "unknown request");
+			return;
+		} catch (ParamParseException e) {
 		}
-	}
-
-	
-	private String requestOneEvent(int eventid) throws IOException {
-		URL url = new URL("http://localhost:8081/"+eventid);
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
-		con.setRequestMethod("GET");
-		int status = con.getResponseCode();
-		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuilder content = new StringBuilder();
-		while ((inputLine = in.readLine()) != null) {
-			content.append(inputLine).append("\n");
-		}
-		in.close();
-		return content.toString();
+		FormatedResponse.get400Response(response, "Bad request", "Bad request");
 	}
 	
-	/**
-	 * call Event Service API  GET /list
-	 * @throws IOException
-	 */
-	private String requestListEvents() throws IOException {
-		URL url = new URL("http://localhost:8081/list");
-		HttpURLConnection con = (HttpURLConnection) url.openConnection();
-		con.setRequestMethod("GET");
-		int status = con.getResponseCode();
-		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuilder content = new StringBuilder();
-		while ((inputLine = in.readLine()) != null) {
-			content.append(inputLine).append("\n");
-		}
-		in.close();
-//		logger.info(status+"");
-//		logger.info(content.toString());
-		return content.toString();
-	}
-
 	/**
 	 * GET /events
 	 * @param response
 	 * @throws IOException
 	 */
 	private void doGetEvents(HttpServletResponse response) throws IOException {
-		response.setContentType("text/html");
-		response.setStatus(HttpServletResponse.SC_OK);
-		PrintWriter out = response.getWriter();
-		StringBuffer sb = new StringBuffer("<html><title>FrontEndEventServlet</title><body>");
-		Gson gson = new Gson();
 		List<Event> events = null;
 		//call Event Service API
-		String listEvents = requestListEvents();
-		//https://stackoverflow.com/questions/5554217/google-gson-deserialize-listclass-object-generic-type
-		Type listType = new TypeToken<ArrayList<Event>>(){}.getType();
+		Map<String, String> listEvents = null;
 		try {
-			events = gson.fromJson(listEvents, listType);
-		} catch (JsonParseException e) {
-			logger.info("json parse error");
-		}
-		if(events == null || events.size() == 0) {
+			listEvents = MyHttpClient.fetchGet("http://localhost:8081/list");
+		} catch (IOException e) {
 			FormatedResponse.get400Response(response, "no events found", "no events found");
 			return;
 		}
-		events.forEach(e ->{ sb.append(e.getName()+":"+e.getPurchased()+"<br/>");});
-		sb.append("</body></html>");
-		out.println(sb);
+		if(listEvents.get("status").equals("200")) {
+			FormatedResponse.get200OKJsonStringResponse(response, listEvents.get("content"));
+		}else{
+			FormatedResponse.get400Response(response, "no events found", "no events found");
+		}
+		
+		//https://stackoverflow.com/questions/5554217/google-gson-deserialize-listclass-object-generic-type
+//		Gson gson = new Gson();
+//		Type listType = new TypeToken<ArrayList<Event>>(){}.getType();
+//		try {
+//			events = gson.fromJson(listEvents, listType);
+//		} catch (JsonParseException e) {
+//			logger.info("json parse error");
+//		}
+//		if(events == null || events.size() == 0) {
+//			FormatedResponse.get400Response(response, "no events found", "no events found");
+//			return;
+//		}
+//		events.forEach(e ->{ sb.append(e.getName()+":"+e.getPurchased()+"<br/>");});
+//		sb.append("</body></html>");
+//		out.println(sb);
 	}
 
 	private void doGetOneEvent(HttpServletResponse response, int eventid) throws IOException {
-		response.setContentType("text/html");
-		response.setStatus(HttpServletResponse.SC_OK);
-		PrintWriter out = response.getWriter();
-		StringBuffer sb = new StringBuffer("<html><title>FrontEndEventServlet</title><body>");
-		Gson gson = new Gson();
-		Event event = null;
+		List<Event> event = null;
 		//call Event Service API
-		String eventString = requestOneEvent(eventid);
+		Map<String, String> eventResult = null;
 		try {
-			event = gson.fromJson(eventString, Event.class);
-		} catch (JsonParseException e) {
-			logger.info("json parse error");
-		}
-		if(event == null) {
+			eventResult = MyHttpClient.fetchGet("http://localhost:8081/"+eventid);
+		} catch (Exception e) {
 			FormatedResponse.get400Response(response, "no events found", "no events found");
 			return;
 		}
-		sb.append(event.getName()+":"+event.getPurchased()+"<br/>");
-		sb.append("</body></html>");
-		out.println(sb);
+		if(eventResult.get("status").equals("200")) {
+			FormatedResponse.get200OKJsonStringResponse(response, eventResult.get("content"));
+		}else{
+			FormatedResponse.get400Response(response, "no events found", "no events found");
+		}
 	}
 
 
+	/**
+	 * POST /events/create, POST /events/{eventid}/purchase/{userid}
+	 */
 	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		//POST /
-		String requestURI = request.getRequestURI();
-		logger.info(requestURI);
-		String[] splited = requestURI.split("/");
-		if(splited.length == 3 && "create".equals(splited[2])) {
-			//POST /events/create
-		}else if(splited.length == 5 && "purchase".equals(splited[3])){
-			//POST /events/{eventid}/purchase/{userid}
-			int eventid = 0;
-			try {
-				eventid = Integer.valueOf(splited[2]);
-			} catch (NumberFormatException e) {
-				// TODO: handle exception
-			}
-			int userid = 0;
-			try {
-				userid = Integer.valueOf(splited[4]);
-			} catch (NumberFormatException e) {
-				// TODO: handle exception
-			}
-		}else{
-			//unsupported path
+		try {
+			ParamParser.parsePath(request, "/events/create");
+			int[] vals = ParamParser.parseIntParams(request, new String[]{"userid", "numtickets"} );
+			int userid = vals[0];
+			int numtickets = vals[1];
+			String eventname = ParamParser.parseStringParams(request, new String[]{"eventname"} )[0];
+			doCreate(response, userid, eventname, numtickets);
+			return;
+		} catch (ParamParseException e) {
 		}
-		response.setContentType("text/html");
-		response.setStatus(HttpServletResponse.SC_OK);
+		try {
+			Map<String, Object> parsed = ParamParser.parsePath(request, "/events/{eventid:int}/purchase/{userid:int}");
+			int eventid = (Integer) parsed.get("eventid");
+			int userid = (Integer) parsed.get("userid");
+			int numtickets = ParamParser.parseIntParams(request, new String[]{"tickets"} )[0];
+			doPurchase(response, eventid, userid, numtickets);
+			return;
+		} catch (ParamParseException e) {
+		}
+		FormatedResponse.get400Response(response, "Bad request", "Bad request");
+	}
+	
+	private void doCreate(HttpServletResponse response, int userid, String eventname, int numtickets) throws IOException {
+		Map<String, String> createPostData = new HashMap<>();
+		createPostData.put("userid", ""+userid);
+		createPostData.put("eventname", eventname);
+		createPostData.put("numtickets", ""+numtickets);
+		Map<String, String> eventCreateResult = MyHttpClient.fetchPost("http://localhost:8081/create", createPostData);
+		String status = eventCreateResult.get("status");
+		if("200".equals(status)) {
+			String content = eventCreateResult.get("content");
+			FormatedResponse.get200OKJsonStringResponse(response, content);
+		}else if("400".equals(status)) {
+			FormatedResponse.get400Response(response, "Event unsuccessfully created", "Event unsuccessfully created");
+		}
+	}
 
-		PrintWriter out = response.getWriter();
-
-		String msg = request.getParameter("usermsg");
-
-		out.println("<html><title>EchoServlet</title><body>You said: " + msg + "</body></html>");
-
+	private void doPurchase(HttpServletResponse response, int eventid, int userid, int numtickets) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,10 +17,13 @@ import com.google.gson.Gson;
 
 import cs601.project4.bean.Event;
 import cs601.project4.dao.dbtools.DbHelper;
+import cs601.project4.exception.ParamParseException;
+import cs601.project4.exception.ServiceException;
 import cs601.project4.service.EventService;
 import cs601.project4.service.EventServiceImpl;
 import cs601.project4.service.ServiceProxy;
 import cs601.project4.web.FormatedResponse;
+import cs601.project4.web.ParamParser;
 
 
 public class EventServlet extends HttpServlet {
@@ -30,28 +34,22 @@ public class EventServlet extends HttpServlet {
 	 * 
 	 */
 	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		String requestURI = request.getRequestURI();
-		logger.info(requestURI);
-		String[] splited = requestURI.split("/");
-		if(splited.length == 2) {
+		try {
+			ParamParser.parsePath(request, "/list");
 			//GET /list
-			if("list".equals(splited[1])) {
-				doListEvents(response);
-			}else {
-				int eventid = 0;
-				try {
-					eventid = Integer.valueOf(splited[1]);
-				} catch (NumberFormatException e) {
-					logger.info("path: "+requestURI+" : eventid is not an integer");
-					FormatedResponse.get400Response(response, "event id error", "event id is not an integer");
-					return;
-				}
-				doGetOneEvent(response, eventid);
-			}
-		}else {
-			logger.info("path: "+requestURI+" : unknown request");
-			FormatedResponse.get400Response(response, "unknown request", "unknown request");
+			doListEvents(response);
+			return;
+		} catch (ParamParseException e) {
 		}
+		try {
+			Map<String, Object> parsed = ParamParser.parsePath(request, "/{eventid:int}");
+			int eventid = (Integer) parsed.get("eventid");
+			//GET /{eventid}
+			doGetOneEvent(response, eventid);
+			return;
+		} catch (ParamParseException e) {
+		}
+		FormatedResponse.get400Response(response, "unknown request", "unknown request");
 	}
 
 	/**
@@ -60,70 +58,76 @@ public class EventServlet extends HttpServlet {
 	 * @throws IOException
 	 */
 	private void doListEvents(HttpServletResponse response) throws IOException {
-		response.setContentType("application/json");
-		response.setStatus(HttpServletResponse.SC_OK);
-		PrintWriter out = response.getWriter();
 		EventService es = ServiceProxy.getProxy(EventService.class, new EventServiceImpl());
-		Gson gson = new Gson();
+		List<Event> events = null;
 		try {
-			List<Event> events = es.listEvents();
-			out.println(gson.toJson(events));
+			events = es.listEvents();
 		} catch (SQLException e) {
-			out.println(gson.toJson(null));
+		}
+		if(events == null) {
+			FormatedResponse.get400Response(response, "Events not found", "Events not found");
 			return;
 		}
+		FormatedResponse.get200OKJsonObjectResponse(response, events);
 	}
 	
 	private void doGetOneEvent(HttpServletResponse response, int eventid) throws IOException {
-		response.setContentType("application/json");
-		response.setStatus(HttpServletResponse.SC_OK);
-		PrintWriter out = response.getWriter();
 		EventService es = ServiceProxy.getProxy(EventService.class, new EventServiceImpl());
-		Gson gson = new Gson();
+		Event event = null;
 		try {
-			Event event = es.getEvent(eventid);
-			out.println(gson.toJson(event));
+			event = es.getEvent(eventid);
 		} catch (SQLException e) {
-			out.println(gson.toJson(null));
+		}
+		if(event == null) {
+			FormatedResponse.get400Response(response, "Event not found", "Event not found");
 			return;
 		}
+		FormatedResponse.get200OKJsonObjectResponse(response, event);
 	}
 
-
+	/**
+	 * POST /create,   POST /purchase/{eventid}
+	 */
 	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		//POST /
-		String requestURI = request.getRequestURI();
-		logger.info(requestURI);
-		String[] splited = requestURI.split("/");
-		if(splited.length == 3 && "create".equals(splited[2])) {
-			//POST /events/create
-		}else if(splited.length == 5 && "purchase".equals(splited[3])){
-			//POST /events/{eventid}/purchase/{userid}
-			int eventid = 0;
+		EventService es = ServiceProxy.getProxy(EventService.class, new EventServiceImpl());
+		try {
+			ParamParser.parsePath(request, "/create");
+			//POST /create
+			int[] parseIntParams = ParamParser.parseIntParams(request, new String[]{"userid", "numtickets"});
+			int userid = parseIntParams[0];
+			int numtickets = parseIntParams[1];
+			String[] parseIntParams2 = ParamParser.parseStringParams(request, new String[]{"eventname"});
+			String eventname = parseIntParams2[0];
 			try {
-				eventid = Integer.valueOf(splited[2]);
-			} catch (NumberFormatException e) {
-				// TODO: handle exception
+				int newEventid = es.createEvent(userid, eventname, numtickets);
+				FormatedResponse.get200OKJsonStringResponse(response, "{\"eventid\":"+newEventid+"}");
+			} catch (SQLException | ServiceException e) {
+				FormatedResponse.get400Response(response, "Event unsuccessfully created", "Event unsuccessfully created");
 			}
-			int userid = 0;
-			try {
-				userid = Integer.valueOf(splited[4]);
-			} catch (NumberFormatException e) {
-				// TODO: handle exception
-			}
-		}else{
-		//unsupported path
+			return;
+		} catch (ParamParseException e) {
 		}
-		response.setContentType("text/html");
-		response.setStatus(HttpServletResponse.SC_OK);
-
-		PrintWriter out = response.getWriter();
-
-		String msg = request.getParameter("usermsg");
-
-		out.println("<html><title>EchoServlet</title><body>You said: " + msg + "</body></html>");
-
+		try {
+			Map<String, Object> parsed = ParamParser.parsePath(request, "/purchase/{eventid:int}");
+			//POST /purchase/{eventid}
+			int eventid = (Integer) parsed.get("eventid");
+			try {
+				int[] parseIntParams = ParamParser.parseIntParams(request, new String[]{"userid", "eventid", "tickets"});
+				int userid = parseIntParams[0];
+				if(eventid != parseIntParams[1]) {
+					throw new ParamParseException("eventid not correct");
+				}
+				int tickets = parseIntParams[2];
+				System.out.println("-----post purchase: " + userid+" "+ eventid + " " + tickets);
+			} catch (ParamParseException e) {
+				// 404
+				FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
+			}
+			return;
+		} catch (ParamParseException e) {
+		}
+		//404
+		FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
 	}
 
 }
