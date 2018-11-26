@@ -4,6 +4,10 @@ import java.sql.SQLException;
 
 import org.junit.Test;
 
+import cs601.project4.service.ServiceProxy;
+import cs601.project4.service.UserService;
+import cs601.project4.service.UserServiceImpl;
+
 public class ProxyTest {
 	@Test
 	public void testCreateUserWithProxy() {

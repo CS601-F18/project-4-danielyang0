@@ -58,7 +58,7 @@ public class TicketDAO {
 		int rows = DbHelper.executeSQL(sql, params);
 		if(rows==0) {
 			String sql2 = "SELECT id FROM t_ticket WHERE userid = ? AND eventid= ?";
-			int ticketid = DbHelper.getScalarResult(sql2, BigInteger.class, new Object[]{userid, eventid}).intValue();
+			int ticketid = DbHelper.getScalarResult(sql2, Integer.class, new Object[]{userid, eventid}).intValue();
 			return ticketid;
 		}else {
 			return DbHelper.getLastIncreasedID();

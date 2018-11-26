@@ -41,6 +41,7 @@ public class EventServiceImpl implements EventService {
 	 * @return
 	 * @throws SQLException
 	 */
+	@Override
 	public List<Event> listEvents() throws SQLException {
 		return eventDAO.getEvents();
 	}
@@ -51,6 +52,7 @@ public class EventServiceImpl implements EventService {
 	 * @return
 	 * @throws SQLException
 	 */
+	@Override
 	public Event getEvent(int id) throws SQLException {
 		return eventDAO.getEventById(id);
 	}
@@ -79,7 +81,7 @@ public class EventServiceImpl implements EventService {
 		
 		UserDAO userDAO = new UserDAO();
 		try {
-			return userDAO.getUserById(userid) == null;
+			return userDAO.getUserById(userid) != null;
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
