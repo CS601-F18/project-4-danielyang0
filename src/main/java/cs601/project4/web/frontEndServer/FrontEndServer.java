@@ -1,17 +1,20 @@
-package cs601.project4.web.eventservice;
+package cs601.project4.web.frontEndServer;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 
+import cs601.project4.web.userServer.UserServlet;
 
-public class EventServer {
+
+public class FrontEndServer {
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		int PORT = 8081;
+		int PORT = 8080;
 		//Example from http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
+		
 		
 		// Create a basic jetty server object that will listen on port 8080.
         // Note that if you set this to port 0 then a randomly available port
@@ -31,17 +34,17 @@ public class EventServer {
         // IMPORTANT:
         // This is a raw Servlet, not a Servlet that has been configured
         // through a web.xml @WebServlet annotation, or anything similar.
-        handler.addServletWithMapping(EventServlet.class, "/*");
+        handler.addServletWithMapping(FrontEndServlet.class, "/*");
  
         // Start things up!
         server.start();
         System.out.println("listenning on port: "+PORT);
+ 
         // The use of server.join() the will make the current thread join and
         // wait until the server is done executing.
         // See
         // http://docs.oracle.com/javase/7/docs/api/java/lang/Thread.html#join()
         server.join();
-
 		
 	}
 

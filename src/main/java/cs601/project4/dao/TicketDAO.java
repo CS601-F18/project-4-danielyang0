@@ -37,6 +37,7 @@ public class TicketDAO {
 	 * @throws SQLException
 	 */
 	public boolean decreaseTicketsFromUser(int userid, int eventid, int ticketsQuantity) throws SQLException {
+		//TODO: if same user has two rows for same event, this sql is not correct
 		String sql = "update t_ticket set quantity=quantity-? WHERE userid=? AND eventid=? AND quantity >=?";
 		Object[] params = { ticketsQuantity, userid, eventid, ticketsQuantity };
 		int rowsAffected = DbHelper.executeSQL(sql, params);

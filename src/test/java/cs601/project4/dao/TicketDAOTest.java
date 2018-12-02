@@ -4,7 +4,7 @@ import java.sql.SQLException;
 
 import org.junit.Test;
 
-import cs601.project4.service.ServiceProxy;
+import cs601.project4.dbservice.DBServiceProxy;
 
 public class TicketDAOTest {
 	@Test

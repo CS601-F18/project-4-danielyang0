@@ -1,19 +1,19 @@
-package cs601.project4.service;
+package cs601.project4.dbservice;
 
 import java.sql.SQLException;
 
 import org.junit.Test;
 
-import cs601.project4.service.ServiceProxy;
-import cs601.project4.service.UserService;
-import cs601.project4.service.UserServiceImpl;
+import cs601.project4.dbservice.DBServiceProxy;
+import cs601.project4.dbservice.UserDBService;
+import cs601.project4.dbservice.UserDBServiceImpl;
 
 public class ProxyTest {
 	@Test
 	public void testCreateUserWithProxy() {
-		ServiceProxy.DEBUG_MODE = true;
+		DBServiceProxy.DEBUG_MODE = true;
 		try {
-			UserService proxy = ServiceProxy.getProxy(UserService.class, new UserServiceImpl());
+			UserDBService proxy = DBServiceProxy.getProxy(UserDBService.class, new UserDBServiceImpl());
 			try {
 				long id = proxy.createUser("somebody");
 				System.out.println("created: userid:" + id);

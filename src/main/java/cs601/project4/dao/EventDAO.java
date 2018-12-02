@@ -19,8 +19,6 @@ public class EventDAO {
 		return DbHelper.getResult("select * from t_event", Event.class);
 	}
 	
-	
-	
 	/**
 	 * decrease available tickets of an event if and only if 
 	 * the available tickets after decresement is still larger or equal than 0
@@ -32,6 +30,12 @@ public class EventDAO {
 	public int decreaseAvail(int eventid, int tickets) throws SQLException {
 		String sql = "update t_event set avail=avail-? WHERE id=? and avail>=?";
 		Object[] params = { tickets, eventid, tickets };
+		return DbHelper.executeSQL(sql, params);
+	}
+	
+	public int increaseAvail(int eventid, int tickets) throws SQLException {
+		String sql = "update t_event set avail=avail+? WHERE id=?";
+		Object[] params = { tickets, eventid };
 		return DbHelper.executeSQL(sql, params);
 	}
 	

@@ -1,5 +1,8 @@
 package cs601.project4.web;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,20 +10,29 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
+
 import cs601.project4.exception.ParamParseException;
+import cs601.project4.web.bean.BeansForJson;
 
 public class ParamParser {
-	public static Map<String, Object> parsePath(HttpServletRequest request, String requestURITarget) {
-		Map<String, Object> pathVariables = new HashMap<String, Object>();
+	public static boolean parsePath(HttpServletRequest request, String requestURITarget, Map<String, Object> pathVariables) {
+		pathVariables.clear();
 		String[] targetSplited = requestURITarget.split("/");
 		String requestURI = request.getRequestURI();
 		String[] splited = requestURI.split("/");
 		if(targetSplited.length != splited.length) {
-			throw new ParamParseException("path not match");
+//			throw new ParamParseException("path not match");
+			return false;
 		}
+		//compare every splited token
 		for (int i = 0; i < targetSplited.length; i++) {
+			//in requestURI, if "//" exisited
 			if( i != 0 && splited[i].length() == 0 ){
-				throw new ParamParseException("path not match");
+//				throw new ParamParseException("path not match");
+				return false;
 			}
 			String target = targetSplited[i];
 			if(target.startsWith("{") && target.endsWith("}")) {
@@ -30,7 +42,8 @@ public class ParamParser {
 					try {
 						intVariable = Integer.valueOf(splited[i]);
 					} catch (NumberFormatException e) {
-						throw new ParamParseException(nameAndType[0] + " should be an integer");
+//						throw new ParamParseException(nameAndType[0] + " should be an integer");
+						return false;
 					}
 					pathVariables.put(nameAndType[0], intVariable);
 				}else{
@@ -38,13 +51,62 @@ public class ParamParser {
 				}
 			}else{
 				if(!target.equals(splited[i])) {
-					throw new ParamParseException("not valid path");
+//					throw new ParamParseException("not valid path");
+					return false;
 				}
 			}
 		}
-		return pathVariables;
+//		return pathVariables;
+		return true;
 	}
 
+	
+	public static <T> T parseJsonToObject(HttpServletRequest request, Class<T> clazz) throws IOException {
+		BufferedReader br = request.getReader();
+		StringBuffer sb = new StringBuffer();
+		String line;
+		while((line = br.readLine()) != null) {
+			sb.append(line);
+		}
+		Gson gson = new Gson();
+		T fromJson = null;
+		try {
+			fromJson = gson.fromJson(sb.toString(), clazz);
+		} catch (JsonSyntaxException e) {
+			// TODO: handle exception
+		}
+		return fromJson;
+	}
+	
+	public static String readOriginalBody(HttpServletRequest request) throws IOException {
+		BufferedReader br = request.getReader();
+		StringBuffer sb = new StringBuffer();
+		String line;
+		while((line = br.readLine()) != null) {
+			sb.append(line+"\n");
+		}
+		return sb.toString();
+	}
+	
+	
+	public static <T> T parseJsonToObject(HttpServletRequest request, Type type) throws IOException {
+		BufferedReader br = request.getReader();
+		StringBuffer sb = new StringBuffer();
+		String line;
+		while((line = br.readLine()) != null) {
+			sb.append(line);
+		}
+		Gson gson = new Gson();
+		T fromJson = null;
+		try {
+			fromJson = gson.fromJson(sb.toString(), type);
+		} catch (JsonSyntaxException e) {
+			// TODO: handle exception
+		}
+		return fromJson;
+	}
+	
+	@Deprecated
 	public static int[] parseIntParams(HttpServletRequest request, String[] intParams){
 		int[] intVals = new int[intParams.length];
 		for (int i = 0; i< intParams.length; i++) {
@@ -63,6 +125,8 @@ public class ParamParser {
 		}
 		return intVals;
 	}
+	
+	@Deprecated
 	public static String[] parseStringParams(HttpServletRequest request, String[] stringParams){
 		String[] stringVals = new String[stringParams.length];
 		for (int i = 0; i < stringParams.length; i++) {
@@ -75,5 +139,5 @@ public class ParamParser {
 		}
 		return stringVals;
 	}
-
+	
 }

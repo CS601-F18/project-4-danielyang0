@@ -1,4 +1,4 @@
-package cs601.project4.service;
+package cs601.project4.dbservice;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -16,7 +16,7 @@ import cs601.project4.exception.ServiceException;
  * @author yangzun
  *
  */
-public class ServiceProxy {
+public class DBServiceProxy {
 	/**
 	 * DEBUG_MODE should only be set true when doing testing
 	 */
@@ -31,7 +31,7 @@ public class ServiceProxy {
 	 */
 	public static <T> T getProxy(Class<T> c, Object service) throws IllegalArgumentException, SecurityException, ClassCastException {
 		Object newProxyInstance = Proxy.newProxyInstance(
-				ServiceProxy.class.getClassLoader(), // 1. class loader
+				DBServiceProxy.class.getClassLoader(), // 1. class loader
 			    new Class<?>[] {c}, // 2. the interfaces which needs to be implemeted
 			    new TxInvocationHandler(service));// 3. the real handler for a method call 
 		return c.cast(newProxyInstance);
@@ -56,7 +56,7 @@ class TxInvocationHandler implements InvocationHandler{
     		conn.setAutoCommit(false);
     		result = method.invoke(service, args);
     		//only used when testing transaction
-    		if(ServiceProxy.DEBUG_MODE) {
+    		if(DBServiceProxy.DEBUG_MODE) {
     			Scanner sc = new Scanner(System.in);
     			System.out.println("PRESS 'y' TO COMMIT: " + method.getName() + "\nPRESS OTHER KEYs TO ROLLBACK");
     			String input = sc.nextLine();

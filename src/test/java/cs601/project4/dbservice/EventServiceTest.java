@@ -1,16 +1,17 @@
-package cs601.project4.service;
+package cs601.project4.dbservice;
 
 import java.sql.SQLException;
 
 import org.junit.Test;
 
-import cs601.project4.service.EventServiceImpl;
-import cs601.project4.service.ServiceProxy;
+import cs601.project4.dbservice.EventDBService;
+import cs601.project4.dbservice.EventDBServiceImpl;
+import cs601.project4.dbservice.DBServiceProxy;
 
 public class EventServiceTest {
 	@Test
 	public void testCreateEvent() {
-		EventService es = ServiceProxy.getProxy(EventService.class, new EventServiceImpl());
+		EventDBService es = DBServiceProxy.getProxy(EventDBService.class, new EventDBServiceImpl());
 		try {
 			es.createEvent(2, "outdoor", 7);
 		} catch (SQLException e) {
@@ -20,17 +21,17 @@ public class EventServiceTest {
 	
 	@Test
 	public void testDecreseTicket() throws SQLException {
-		EventServiceImpl es = new EventServiceImpl();
+		EventDBServiceImpl es = new EventDBServiceImpl();
 		boolean success = es.decreaseTicket(7, 8);
 		System.out.println(success? "success":"fail");
 	}
 	
 	@Test
 	public void testPurchase() {
-		ServiceProxy.DEBUG_MODE = true;
-		EventService es = ServiceProxy.getProxy(EventService.class, new EventServiceImpl());
+		DBServiceProxy.DEBUG_MODE = true;
+		EventDBService es = DBServiceProxy.getProxy(EventDBService.class, new EventDBServiceImpl());
 		try {
-			es.purchase(1, 3, 9);
+			es.purchase(3, 9);
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
 		}

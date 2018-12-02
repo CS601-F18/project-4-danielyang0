@@ -9,9 +9,9 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.gson.Gson;
 
 import cs601.project4.bean.Event;
-import cs601.project4.service.EventService;
-import cs601.project4.service.EventServiceImpl;
-import cs601.project4.service.ServiceProxy;
+import cs601.project4.dbservice.EventDBService;
+import cs601.project4.dbservice.EventDBServiceImpl;
+import cs601.project4.dbservice.DBServiceProxy;
 
 public class FormatedResponse {
 	public static void get400Response(HttpServletResponse response, String title, String msg) throws IOException {
@@ -28,11 +28,11 @@ public class FormatedResponse {
 		get200OKJsonStringResponse(response, gson.toJson(o));
 	}
 	
+	
 	public static void get200OKJsonStringResponse(HttpServletResponse response, String json) throws IOException {
 		response.setContentType("application/json");
 		response.setStatus(HttpServletResponse.SC_OK);
 		PrintWriter out = response.getWriter();
-		Gson gson = new Gson();
 		out.println(json);
 	}
 }

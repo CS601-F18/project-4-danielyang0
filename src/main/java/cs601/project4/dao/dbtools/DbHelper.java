@@ -20,6 +20,7 @@ import cs601.project4.exception.DAOException;
  */
 public class DbHelper {
 	private static Logger logger = Logger.getLogger(RowProcessor.class);
+	//ThreadLocal variable, for every thread, maintain one and only one connection
 	private static ThreadLocal<Connection> conns = new ThreadLocal<Connection>();
 	
 	static {
@@ -117,15 +118,6 @@ public class DbHelper {
 		}
 	}
 	
-	/**
-	 * Get the last self-increased id in one db connection
-	 * @return
-	 */
-	public static int getLastIncreasedID() {
-		String sql = "SELECT LAST_INSERT_ID()";
-		return getScalarResult(sql, BigInteger.class).intValue();
-	}
-	
 	public static <T> T getScalarResult(String sql, Class<T> c, Object... params) {
 		SqlExecuter sqlExecuter = new SqlExecuter();
 		try {
@@ -136,6 +128,17 @@ public class DbHelper {
 		}
 		return null;
 	}
+	
+	
+	/**
+	 * Get the last self-increased id in one db connection
+	 * @return
+	 */
+	public static int getLastIncreasedID() {
+		String sql = "SELECT LAST_INSERT_ID()";
+		return getScalarResult(sql, BigInteger.class).intValue();
+	}
+
 
 }
 
