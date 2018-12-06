@@ -3,16 +3,20 @@ package cs601.project4.web.frontEndServer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 
+import cs601.project4.tools.PropertyReader;
 import cs601.project4.web.userServer.UserServlet;
 
 
 public class FrontEndServer {
-
+	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
+	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		int PORT = 8080;
+		
+//		int PORT = 8080;
+		int PORT = reader.readIntValue("frontPort");
 		//Example from http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
 		
 		

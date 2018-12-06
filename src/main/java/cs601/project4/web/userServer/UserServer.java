@@ -3,6 +3,8 @@ package cs601.project4.web.userServer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 
+import cs601.project4.tools.PropertyReader;
+
 /**
  * User Service - The user service will manage the user account information, 
  * including the events for which a user has purchased tickets. 
@@ -10,12 +12,14 @@ import org.eclipse.jetty.servlet.ServletHandler;
  * @author yangzun
  */
 public class UserServer {
-
+	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
+	
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		int PORT = 8082;
+//		int PORT = 8082;
+		int PORT = reader.readIntValue("userPort");
 		//Example from http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
 		
 		// Create a basic jetty server object that will listen on port 8080.

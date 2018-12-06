@@ -1,9 +1,11 @@
 package cs601.project4.dao.dbtools;
 
-import java.math.BigDecimal;
+import java.io.File;
 import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -11,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import cs601.project4.exception.DAOException;
+import cs601.project4.tools.PropertyReader;
 
 /**
  * database sql statement execution helper
@@ -22,8 +25,21 @@ public class DbHelper {
 	private static Logger logger = Logger.getLogger(RowProcessor.class);
 	//ThreadLocal variable, for every thread, maintain one and only one connection
 	private static ThreadLocal<Connection> conns = new ThreadLocal<Connection>();
+	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
+	
+	static String timeZoneSettings = "?useSSL=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+//	static String urlString = "jdbc:mysql://127.0.0.1:3306/event_ticket";
+//	static String urlString = "jdbc:mysql://sql.cs.usfca.edu:3306/user49";
+//	static String urlString = "jdbc:mysql://127.0.0.1:3307/user49";
+	static String urlString = null;
+	
+	static String utfSetting = "&characterEncoding=utf8";
+	static String userName = null;
+	static String pwd = null;
 	
 	static {
+		File file = new File("./config/log4j.properties");
+		System.out.println(file.getAbsolutePath());
 		PropertyConfigurator.configure("./config/log4j.properties");
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
@@ -31,15 +47,20 @@ public class DbHelper {
 			logger.error("mysql driver not existed");
 			System.exit(1);
 		}
+		urlString = reader.readStringValue("mysqlurl");
+		userName = reader.readStringValue("username");
+		pwd = reader.readStringValue("pwd");
 	}
-	static String timeZoneSettings = "?useSSL=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-	static String urlString = "jdbc:mysql://127.0.0.1:3306/event_ticket";
-	static String utfSetting = "&characterEncoding=utf8";
+	
+	
+
 	public static Connection getConnection() {
 		Connection conn = conns.get();
 		if(conn == null) {
 			try {
-				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "root","root");
+//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "root","root");
+//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "user49","user49");
+				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, userName, pwd);
 				logger.debug("connected to db");
 				conns.set(conn);
 			} catch (SQLException e) {
@@ -47,6 +68,26 @@ public class DbHelper {
 			}
 		}
 		return conn;
+	}
+	
+	public static void main(String[] args) throws SQLException {
+		Connection con = DbHelper.getConnection();
+		
+		String selectStmt = "SELECT * FROM t_test"; 
+		
+		//create a statement object
+		PreparedStatement stmt = con.prepareStatement(selectStmt);
+		
+		//execute a query, which returns a ResultSet object
+		ResultSet result = stmt.executeQuery();
+
+		//iterate over the ResultSet
+		while (result.next()) {
+			//for each result, get the value of the columns name and id
+			int id = result.getInt("id");
+			System.out.println(id);
+		}
+		
 	}
 	
 	/**

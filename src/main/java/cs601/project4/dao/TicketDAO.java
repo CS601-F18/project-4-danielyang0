@@ -52,19 +52,33 @@ public class TicketDAO {
 	 * @return the ticket id
 	 * @throws SQLException
 	 */
+//	int initTicketsForUserAndLock(int userid, int eventid ) throws SQLException {
+//		String sql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0" 
+//		+ " WHERE NOT EXISTS (SELECT userid FROM t_ticket WHERE userid = ? AND eventid= ? for update) LIMIT 1;";
+//		Object[] params = { userid, eventid, userid, eventid };
+//		int rows = DbHelper.executeSQL(sql, params);
+//		if(rows==0) {
+//			String sql2 = "SELECT id FROM t_ticket WHERE userid = ? AND eventid= ?";
+//			int ticketid = DbHelper.getScalarResult(sql2, Integer.class, new Object[]{userid, eventid}).intValue();
+//			return ticketid;
+//		}else {
+//			return DbHelper.getLastIncreasedID();
+//		}
+//	}
 	int initTicketsForUserAndLock(int userid, int eventid ) throws SQLException {
-		String sql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0" 
-		+ " WHERE NOT EXISTS (SELECT userid FROM t_ticket WHERE userid = ? AND eventid= ? for update) LIMIT 1;";
-		Object[] params = { userid, eventid, userid, eventid };
-		int rows = DbHelper.executeSQL(sql, params);
-		if(rows==0) {
-			String sql2 = "SELECT id FROM t_ticket WHERE userid = ? AND eventid= ?";
-			int ticketid = DbHelper.getScalarResult(sql2, Integer.class, new Object[]{userid, eventid}).intValue();
-			return ticketid;
-		}else {
+		String sql2 = "SELECT * FROM t_ticket WHERE userid = ? AND eventid= ? for update";
+		Ticket tkt = DbHelper.getSingleResult(sql2, Ticket.class, new Object[]{userid, eventid});
+		if(tkt == null) {
+			String insertSql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0";
+			Object[] params = { userid, eventid };
+			int rows = DbHelper.executeSQL(insertSql, params);
 			return DbHelper.getLastIncreasedID();
+		}else{
+			return tkt.getId();
 		}
 	}
+	
+
 	
 	/**
 	 * this method will lock the table

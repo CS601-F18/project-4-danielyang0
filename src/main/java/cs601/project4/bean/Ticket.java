@@ -1,9 +1,16 @@
 package cs601.project4.bean;
 
 public class Ticket {
+	private int id;
 	private int userid;
 	private int eventid;
 	private int quantity;
+	public int getId() {
+		return id;
+	}
+	public void setId(int id) {
+		this.id = id;
+	}
 	public int getUserid() {
 		return userid;
 	}
