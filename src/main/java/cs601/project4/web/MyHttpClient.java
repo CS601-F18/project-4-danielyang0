@@ -76,6 +76,10 @@ public class MyHttpClient {
 		return fetchPostJsonString(urlString,requestBody);
 	}
 	
+	
+	
+	
+	
 	@Deprecated
 	public static Map<String,String> fetchPost(String urlString, Map<String, String> postParams) throws IOException {
 		
@@ -103,6 +107,8 @@ public class MyHttpClient {
 		return map;
 	}
 }
+
+
 
 class ParameterStringBuilder {
     public static String getParamsString(Map<String, String> params) 

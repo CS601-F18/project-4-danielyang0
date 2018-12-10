@@ -28,14 +28,14 @@ public class EventDAO {
 	 * @throws SQLException
 	 */
 	public int decreaseAvail(int eventid, int tickets) throws SQLException {
-		String sql = "update t_event set avail=avail-? WHERE id=? and avail>=?";
-		Object[] params = { tickets, eventid, tickets };
+		String sql = "update t_event set avail=avail-?, purchased=purchased+? WHERE id=? and avail>=?";
+		Object[] params = { tickets, tickets, eventid, tickets };
 		return DbHelper.executeSQL(sql, params);
 	}
 	
 	public int increaseAvail(int eventid, int tickets) throws SQLException {
-		String sql = "update t_event set avail=avail+? WHERE id=?";
-		Object[] params = { tickets, eventid };
+		String sql = "update t_event set avail=avail+?, purchased=purchased-? WHERE id=?";
+		Object[] params = { tickets, tickets, eventid };
 		return DbHelper.executeSQL(sql, params);
 	}
 	

@@ -73,12 +73,11 @@ public class ParamParser {
 		try {
 			fromJson = gson.fromJson(sb.toString(), clazz);
 		} catch (JsonSyntaxException e) {
-			// TODO: handle exception
 		}
 		return fromJson;
 	}
 	
-	public static String readOriginalBody(HttpServletRequest request) throws IOException {
+	public static String readRequestBody(HttpServletRequest request) throws IOException {
 		BufferedReader br = request.getReader();
 		StringBuffer sb = new StringBuffer();
 		String line;

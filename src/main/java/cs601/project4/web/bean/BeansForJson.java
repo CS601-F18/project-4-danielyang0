@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.google.gson.Gson;
 
+import cs601.project4.bean.Event;
 import cs601.project4.web.bean.BeansForJson.UserDetails;
 
 /**
@@ -147,7 +148,30 @@ public class BeansForJson {
 			return data;
 		}
 	}
+
 	
+	/**
+	 * FrontEnd Service:  GET /users/{userid} response
+	 * @author yangzun
+	 *
+	 */
+	public static class UserDetailsEventDetails {
+		public int userid;
+		public String username;
+		public List<EventDetail> tickets;
+		public UserDetailsEventDetails(int userid, String username, List<EventDetail> tickets) {
+			super();
+			this.userid = userid;
+			this.username = username;
+			this.tickets = tickets;
+		}
+	}
+	
+	/**
+	 * FrontEnd Service: ET /users/{userid} response tickets
+	 * @author yangzun
+	 *
+	 */
 	public static class EventDetail {
 		private int eventid;
 		private String eventname;
@@ -162,18 +186,10 @@ public class BeansForJson {
 			this.avail = avail;
 			this.purchased = purchased;
 		}
-	}
-	
-	public static class UserDetailsEventDetails {
-		public int userid;
-		public String username;
-		public List<EventDetail> tickets;
-		public UserDetailsEventDetails(int userid, String username, List<EventDetail> tickets) {
-			super();
-			this.userid = userid;
-			this.username = username;
-			this.tickets = tickets;
+		public EventDetail(Event e) {
+			this(e.getId(), e.getName(), e.getUserid(), e.getAvail(), e.getPurchased());
 		}
+		
 		
 	}
 	

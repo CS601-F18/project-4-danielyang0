@@ -80,22 +80,15 @@ public class EventDBServiceImpl implements EventDBService {
 		if(eventDAO.getEventById(eventid) == null) {
 			throw new ServiceException("Event not found");
 		}
-		//		if(!isUserExisted(userid)) {
-		//			throw new ServiceException("User not found");
-		//		}
 		int rowsAffected = eventDAO.decreaseAvail(eventid, tickets);
 		if(rowsAffected == 0) {
 			throw new ServiceException("Available tickets are not enough");
 		}
-		//		return increaseUserTicket(userid, eventid, tickets);
 	}
 
 	@Override
 	public void increaseAvailTickets(int eventid, int tickets) throws SQLException {
 		int rowsAffected = eventDAO.increaseAvail(eventid, tickets);
-		if(rowsAffected == 0) {
-			throw new ServiceException("Available tickets are not enough");
-		}
 	}
 
 	//TO DO: call User Service API 

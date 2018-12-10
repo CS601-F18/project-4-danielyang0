@@ -3,6 +3,7 @@ package cs601.project4.web.userServer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 
+import cs601.project4.dao.dbtools.DbHelper;
 import cs601.project4.tools.PropertyReader;
 
 /**
@@ -12,7 +13,7 @@ import cs601.project4.tools.PropertyReader;
  * @author yangzun
  */
 public class UserServer {
-	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
+	private static PropertyReader reader = new PropertyReader("./config","userServer.properties");
 	
 	/**
 	 * @param args
@@ -45,6 +46,7 @@ public class UserServer {
         // Start things up!
         server.start();
         System.out.println("listenning on port: "+PORT);
+        DbHelper.init(reader);
         // The use of server.join() the will make the current thread join and
         // wait until the server is done executing.
         // See

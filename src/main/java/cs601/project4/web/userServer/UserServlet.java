@@ -39,6 +39,7 @@ import cs601.project4.web.FormatedResponse;
 import cs601.project4.web.ParamParser;
 import cs601.project4.web.bean.BeansForJson;
 import cs601.project4.web.bean.BeansForJson.AddTicketsToUserRequestInfo;
+import cs601.project4.web.bean.BeansForJson.CreateUserRequestInfo;
 import cs601.project4.web.bean.BeansForJson.TransferTicketsRequestInfo;
 
 /**
@@ -68,10 +69,38 @@ public class UserServlet extends HttpServlet {
 			int userid = (Integer) parsed.get("userid");
 			//2.Get user details  GET /{userid}
 			getUserDetail(response, userid);
-		}else{
-			FormatedResponse.get400Response(response, "unknown request", "unknown request");
+		}else if( ParamParser.parsePath(request, "/exist/{userid:int}", parsed) ) {
+			int userid = (Integer) parsed.get("userid");
+			//5. Check if user exists GET /exist/{userid}
+			isUserExisted(response, userid);
+		}
+		else{
+			FormatedResponse.get404Response(response);
 		}
 	}
+	
+	
+	
+	/**
+	 * 5. Check if user exists GET /exist/{userid}
+	 * @param response
+	 * @param userid
+	 * @throws IOException
+	 */
+	private void isUserExisted(HttpServletResponse response, int userid) throws IOException {
+		User user = null;
+		try {
+			user = us.getUserById(userid);
+		} catch (SQLException e) {
+		}
+		if(user == null) {
+			FormatedResponse.get400Response(response, "User not found");
+			return;
+		}
+		FormatedResponse.get200OKJsonStringResponse(response, "{\"user " + userid + " exists\":\"yes\"}");
+	}
+	
+	
 	
 	/**
 	 * 2. Get user details GET/{userid}
@@ -91,26 +120,27 @@ public class UserServlet extends HttpServlet {
 		} catch (SQLException e) {
 		}
 		if(user == null) {
-			//TODO
-			FormatedResponse.get400Response(response, "User not found", "User not found");
+			FormatedResponse.get400Response(response, "User not found");
 			return;
 		}
 		List<BeansForJson.EventId> eventIds = new ArrayList<>();
 		if(tickets != null) {
-			tickets.forEach((e) -> {eventIds.add(new BeansForJson.EventId(e.getEventid()));});
+			tickets.forEach((t) -> {
+				for(int i = 0; i < t.getQuantity(); i++) {
+					eventIds.add(new BeansForJson.EventId(t.getEventid()));
+				}
+			});
 		}
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty("userid",userid);
 		jsonObject.addProperty("username",user.getName());
 		Gson gson = new Gson();
+		//https://www.programcreek.com/java-api-examples/?class=com.google.gson.Gson&method=toJsonTree
 		JsonElement element = gson.toJsonTree(eventIds, new TypeToken<List<BeansForJson.EventId>>(){}.getType());
-//		if(element.isJsonArray()) {
-//			JsonArray jsonArray = element.getAsJsonArray();
-//		}
 		jsonObject.add("tickets", element);
 		FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
 	}
-
+	
 	/**
 	 * 1. Create a new user
 	 * 3. Add a new ticket for a user
@@ -131,7 +161,7 @@ public class UserServlet extends HttpServlet {
 			//POST /{userid}/tickets/transfer
 			transferTickets(request, response, parsed);
 		}else{
-			FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
+			FormatedResponse.get404Response(response);
 		}
 	}
 
@@ -146,21 +176,26 @@ public class UserServlet extends HttpServlet {
 	private void addTicketsToUser(HttpServletRequest request, HttpServletResponse response,
 			Map<String, Object> parsed) throws IOException {
 		int userid = (Integer) parsed.get("userid");
+		AddTicketsToUserRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.AddTicketsToUserRequestInfo.class);
+		if(postObject == null) {
+			FormatedResponse.get400Response(response, "Tickets could not be added");
+			return;
+		}
+		int eventid = postObject.getEventid();
+		int tickets = postObject.getTickets();
+		boolean success = false;
 		try {
-			AddTicketsToUserRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.AddTicketsToUserRequestInfo.class);
-			int eventid = postObject.getEventid();
-			int tickets = postObject.getTickets();
-			boolean success = ts.addTicketsToUserIfExists(userid, eventid, tickets);
-			if(success) {
-				JsonObject jsonObject = new JsonObject();
-				jsonObject.addProperty("OK", "Event tickets added");
-				FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
-			}else{
-				FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
-			}
-		} catch (ParamParseException | SQLException e) {
-			// 404
-			FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
+			success = ts.addTicketsToUserIfExists(userid, eventid, tickets);
+		} catch (SQLException e) {
+			FormatedResponse.get400Response(response, "Tickets could not be added");
+			return;
+		}
+		if(success) {
+			JsonObject jsonObject = new JsonObject();
+			jsonObject.addProperty("OK", "Event tickets added");
+			FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
+		}else{
+			FormatedResponse.get400Response(response, "Tickets could not be added");
 		}
 	}
 	
@@ -175,22 +210,25 @@ public class UserServlet extends HttpServlet {
 	private void transferTickets(HttpServletRequest request, HttpServletResponse response,
 			Map<String, Object> parsed) throws IOException {
 		int userid = (Integer) parsed.get("userid");
+		TransferTicketsRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.TransferTicketsRequestInfo.class);
+		if(postObject == null) {
+			FormatedResponse.get400Response(response, "Tickets could not be transfered");
+			return;
+		}
+		int eventid = postObject.getEventid();
+		int tickets = postObject.getTickets();
+		int targetUserId = postObject.getTargetuser();
+		boolean success = false;
 		try {
-			TransferTicketsRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.TransferTicketsRequestInfo.class);
-			int eventid = postObject.getEventid();
-			int tickets = postObject.getTickets();
-			int targetUserId = postObject.getTargetuser();
-			boolean success = ts.transferTickets(userid, targetUserId, eventid, tickets);
-			if(success) {
-				JsonObject jsonObject = new JsonObject();
-				jsonObject.addProperty("OK", "Event tickets transfered");
-				FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
-			}else{
-				FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
-			}
-		} catch (ParamParseException | SQLException | ServiceException e) {
-			// 404
-			FormatedResponse.get400Response(response, "Bad Request", "Bad Request");
+			success = ts.transferTickets(userid, targetUserId, eventid, tickets);
+		} catch (SQLException e) {
+		}
+		if(success) {
+			JsonObject jsonObject = new JsonObject();
+			jsonObject.addProperty("OK", "Event tickets transfered");
+			FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
+		}else{
+			FormatedResponse.get400Response(response, "Tickets could not be transfered");
 		}
 	}
 	
@@ -202,27 +240,27 @@ public class UserServlet extends HttpServlet {
 	 * @throws IOException
 	 */
 	private void createUser(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		CreateUserRequestInfo parsedObject = ParamParser.parseJsonToObject(request, BeansForJson.CreateUserRequestInfo.class);
+		if(parsedObject == null) {
+			FormatedResponse.get400Response(response, "User unsuccessfully created");
+			return;
+		}
+		String username = parsedObject.getUsername();
+		if(username == null) {
+			FormatedResponse.get400Response(response, "User unsuccessfully created");
+			return;
+		}
 		try {
-			String username = ParamParser.parseJsonToObject(request, BeansForJson.CreateUserRequestInfo.class).getUsername();
-			if(username == null) {
+			int newUserId = us.createUser(username);
+			if(newUserId == 0) {
+				FormatedResponse.get400Response(response, "User unsuccessfully created");
 				return;
 			}
-			try {
-				int newUserId = us.createUser(username);//createEvent(userid, eventname, numtickets);
-				//TODO
-				if(newUserId == 0) {
-					FormatedResponse.get400Response(response, "User unsuccessfully created", "User unsuccessfully created");
-					return;
-				}
-				JsonObject jsonObject = new JsonObject();
-				jsonObject.addProperty("userid", newUserId);
-				FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
-			} catch (SQLException e) {
-				FormatedResponse.get400Response(response, "User unsuccessfully created", "User unsuccessfully created");
-			}
-		} catch (ParamParseException e) {
-			// TODO: handle exception
-			// handle parameter error
+			JsonObject jsonObject = new JsonObject();
+			jsonObject.addProperty("userid", newUserId);
+			FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
+		} catch (SQLException e) {
+			FormatedResponse.get400Response(response, "User unsuccessfully created");
 		}
 	}
 

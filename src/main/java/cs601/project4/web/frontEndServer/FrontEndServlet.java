@@ -32,6 +32,7 @@ import cs601.project4.web.MyHttpClient;
 import cs601.project4.web.ParamParser;
 import cs601.project4.web.bean.BeansForJson;
 import cs601.project4.web.bean.BeansForJson.CreateEventRequestInfo;
+import cs601.project4.web.bean.BeansForJson.CreateUserRequestInfo;
 import cs601.project4.web.bean.BeansForJson.EventDetail;
 import cs601.project4.web.bean.BeansForJson.PurchaseTicketRequestInfo;
 import cs601.project4.web.bean.BeansForJson.UserDetailsEventDetails;
@@ -50,12 +51,8 @@ import cs601.project4.web.bean.BeansForJson.UserDetailsEventDetails;
  *
  */
 public class FrontEndServlet extends HttpServlet {
-	//	private static Logger logger = Logger.getLogger(EventServlet.class);
-	//	static {
-	//		PropertyConfigurator.configure("./config/log4j.properties");
-	//	}
 	private Logger logger = Logger.getLogger(FrontEndServlet.class.getName());
-	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
+	private static PropertyReader reader = new PropertyReader("./config","frontEndServer.properties");
 
 	/**
 	 * 1. Get a list of all events
@@ -77,7 +74,7 @@ public class FrontEndServlet extends HttpServlet {
 			int userid = (Integer) parsed.get("userid");
 			doGetUserInformation(response, userid);
 		}else{
-			FormatedResponse.get400Response(response, "Bad request", "Bad request");
+			FormatedResponse.get404Response(response);
 		}
 	}
 
@@ -92,16 +89,15 @@ public class FrontEndServlet extends HttpServlet {
 		//call Event Service API
 		Map<String, String> listEvents = null;
 		try {
-//			listEvents = MyHttpClient.fetchGet("http://localhost:8081/list");
 			listEvents = MyHttpClient.fetchGet(reader.readStringValue("eventService") + "/list");
 		} catch (IOException e) {
-			FormatedResponse.get400Response(response, "no events found", "no events found");
+			FormatedResponse.get400Response(response, "No events found");
 			return;
 		}
 		if(listEvents.get("status").equals("200")) {
 			FormatedResponse.get200OKJsonStringResponse(response, listEvents.get("content"));
 		}else{
-			FormatedResponse.get400Response(response, "no events found", "no events found");
+			FormatedResponse.get400Response(response, "No events found");
 		}
 	}
 
@@ -115,16 +111,15 @@ public class FrontEndServlet extends HttpServlet {
 		//call Event Service API
 		Map<String, String> eventResult = null;
 		try {
-//			eventResult = MyHttpClient.fetchGet("http://localhost:8081/"+eventid);
 			eventResult = MyHttpClient.fetchGet(reader.readStringValue("eventService") + "/" + eventid);
-		} catch (Exception e) {
-			FormatedResponse.get400Response(response, "no events found", "no events found");
+		} catch (IOException e) {
+			FormatedResponse.get400Response(response, "Event not found");
 			return;
 		}
 		if(eventResult.get("status").equals("200")) {
 			FormatedResponse.get200OKJsonStringResponse(response, eventResult.get("content"));
 		}else{
-			FormatedResponse.get400Response(response, "no events found", "no events found");
+			FormatedResponse.get400Response(response, "Event not found");
 		}
 	}
 
@@ -139,10 +134,9 @@ public class FrontEndServlet extends HttpServlet {
 	private void doGetUserInformation(HttpServletResponse response, int userid) throws IOException {
 		Map<String, String> result = null;
 		try {
-//			result = MyHttpClient.fetchGet("http://localhost:8082/" + userid);
 			result = MyHttpClient.fetchGet(reader.readStringValue("userService") + "/" + userid);
 		} catch (Exception e) {
-			FormatedResponse.get400Response(response, "no User found", "no User found");
+			FormatedResponse.get400Response(response, "User not found");
 			return;
 		}
 		if(result.get("status").equals("200")) {
@@ -152,22 +146,23 @@ public class FrontEndServlet extends HttpServlet {
 			try {
 				userDetails = gson.fromJson(jsonString, BeansForJson.UserDetails.class);
 			} catch (JsonParseException e) {
-				//TODO handle
 				logger.info("json parse error");
+				FormatedResponse.get400Response(response, "User not found");
+				return;
 			}
 			List<BeansForJson.EventId> eventids = userDetails.getTickets();
-//			Map<String, String> result2 = MyHttpClient.fetchPostJson("http://localhost:8081/listmany", eventids);
-			Map<String, String> result2 = MyHttpClient.fetchPostJson(reader.readStringValue("eventService") + "/listmany", eventids);
 			
+			Map<String, String> result2 = MyHttpClient.fetchPostJson(reader.readStringValue("eventService") + "/group", eventids);
 			if(result2.get("status").equals("200")) {
 				String jsonString2 = result2.get("content");
 				List<BeansForJson.EventDetail> listOfEventDetails = gson.fromJson(jsonString2, new TypeToken<List<BeansForJson.EventDetail>>(){}.getType());
 				UserDetailsEventDetails responseObject = new BeansForJson.UserDetailsEventDetails(userid, userDetails.getUsername(), listOfEventDetails);
-				
 				FormatedResponse.get200OKJsonObjectResponse(response, responseObject);
+			}else{
+				FormatedResponse.get400Response(response, "request events details error");
 			}
 		}else{
-			FormatedResponse.get400Response(response, "no User found", "no User found");
+			FormatedResponse.get400Response(response, "User not found");
 		}
 	}
 
@@ -183,25 +178,21 @@ public class FrontEndServlet extends HttpServlet {
 		Map<String, Object> parsed = new HashMap<>();
 		if(ParamParser.parsePath(request, "/events/create", parsed)) {
 			//2. Create a new event
-			CreateEventRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.CreateEventRequestInfo.class);
-			doCreate(response, postObject);
+			createEvent(request, response);
 		}else if(ParamParser.parsePath(request, "/events/{eventid:int}/purchase/{userid:int}",parsed)){
 			//4. Purchase tickets for an event
 			int eventid = (Integer) parsed.get("eventid");
 			int userid = (Integer) parsed.get("userid");
-			int tickets = ParamParser.parseJsonToObject(request, BeansForJson.PurchaseTicketRequestInfo.class).getTickets();
-			doPurchase(response, eventid, userid, tickets);
+			purchase(request, response, eventid, userid);
 		}else if(ParamParser.parsePath(request, "/users/create",parsed)){
 			//5. Create a user
-			String username = ParamParser.parseJsonToObject(request, BeansForJson.CreateUserRequestInfo.class).getUsername();
-			createUser(response, username);
+			createUser(request, response);
 		}else if(ParamParser.parsePath(request, "/users/{userid:int}/tickets/transfer", parsed)) {
 			//7.Transfer tickets from one user to another
 			int userid = (Integer) parsed.get("userid");
-			String requestBody = ParamParser.readOriginalBody(request);
-			transfer(response, userid, requestBody);
+			transfer(request, response, userid);
 		}else{
-			FormatedResponse.get400Response(response, "Bad request", "Bad request");
+			FormatedResponse.get404Response(response);
 		}		
 	}
 	
@@ -214,16 +205,17 @@ public class FrontEndServlet extends HttpServlet {
 	 * @param username
 	 * @throws IOException
 	 */
-	private void createUser(HttpServletResponse response, String username) throws IOException {
-		BeansForJson.CreateUserRequestInfo postObject = new BeansForJson.CreateUserRequestInfo(username);
-//		Map<String, String> result = MyHttpClient.fetchPostJson("http://localhost:8082/create", postObject);
-		Map<String, String> result = MyHttpClient.fetchPostJson(reader.readStringValue("userService") + "/create", postObject);
+	private void createUser(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		CreateUserRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.CreateUserRequestInfo.class);
+		String username = postObject.getUsername();
+		BeansForJson.CreateUserRequestInfo object = new BeansForJson.CreateUserRequestInfo(username);
+		Map<String, String> result = MyHttpClient.fetchPostJson(reader.readStringValue("userService") + "/create", object);
 		String status = result.get("status");
 		if("200".equals(status)) {
 			String content = result.get("content");
 			FormatedResponse.get200OKJsonStringResponse(response, content);
 		}else if("400".equals(status)) {
-			FormatedResponse.get400Response(response, "User unsuccessfully created", "User unsuccessfully created");
+			FormatedResponse.get400Response(response, "User could not be created");
 		}
 	}
 	
@@ -236,15 +228,19 @@ public class FrontEndServlet extends HttpServlet {
 	 * @param numtickets
 	 * @throws IOException
 	 */
-	private void doCreate(HttpServletResponse response, CreateEventRequestInfo object) throws IOException {
-//		Map<String, String> eventCreateResult = MyHttpClient.fetchPostJson("http://localhost:8081/create", object);
-		Map<String, String> eventCreateResult = MyHttpClient.fetchPostJson(reader.readStringValue("eventService") + "/create", object);
+	private void createEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		CreateEventRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.CreateEventRequestInfo.class);
+		if(postObject == null) {
+			FormatedResponse.get400Response(response, "Event unsuccessfully created");
+			return;
+		}
+		Map<String, String> eventCreateResult = MyHttpClient.fetchPostJson(reader.readStringValue("eventService") + "/create", postObject);
 		String status = eventCreateResult.get("status");
 		if("200".equals(status)) {
 			String content = eventCreateResult.get("content");
 			FormatedResponse.get200OKJsonStringResponse(response, content);
 		}else if("400".equals(status)) {
-			FormatedResponse.get400Response(response, "Event unsuccessfully created", "Event unsuccessfully created");
+			FormatedResponse.get400Response(response, "Event unsuccessfully created");
 		}
 	}
 
@@ -257,15 +253,20 @@ public class FrontEndServlet extends HttpServlet {
 	 * @param numtickets
 	 * @throws IOException 
 	 */
-	private void doPurchase(HttpServletResponse response, int eventid, int userid, int numtickets) throws IOException {
+	private void purchase(HttpServletRequest request, HttpServletResponse response, int eventid, int userid) throws IOException {
+		PurchaseTicketRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.PurchaseTicketRequestInfo.class);
+		if(postObject == null) {
+			FormatedResponse.get400Response(response, "Tickets could not be purchased");
+			return;
+		}
+		int numtickets = postObject.getTickets();
 		BeansForJson.PurchaseTicketRequestInfo object = new BeansForJson.PurchaseTicketRequestInfo(userid, eventid, numtickets);
-//		Map<String, String> result = MyHttpClient.fetchPostJson("http://localhost:8081/purchase/"+eventid, object);
 		Map<String, String> result = MyHttpClient.fetchPostJson(reader.readStringValue("eventService") + "/purchase/"+eventid, object);
 		if(result.get("status").equals("200")) {
 			String content = result.get("content");
 			FormatedResponse.get200OKJsonStringResponse(response, content);
 		}else{
-			FormatedResponse.get400Response(response, "fail", "fail");
+			FormatedResponse.get400Response(response, "Tickets could not be purchased");
 		}
 	}
 	
@@ -277,15 +278,14 @@ public class FrontEndServlet extends HttpServlet {
 	 * @param requestBody
 	 * @throws IOException 
 	 */
-	private void transfer(HttpServletResponse response, int userid, String requestBody) throws IOException {
-//		Map<String, String> result = MyHttpClient.fetchPostJsonString("http://localhost:8082/"+userid+"/tickets/transfer", requestBody);
+	private void transfer(HttpServletRequest request, HttpServletResponse response, int userid) throws IOException {
+		String requestBody = ParamParser.readRequestBody(request);
 		Map<String, String> result = MyHttpClient.fetchPostJsonString(reader.readStringValue("userService") + "/"+userid+"/tickets/transfer", requestBody);
 		if(result.get("status").equals("200")) {
 			FormatedResponse.get200OKJsonStringResponse(response, result.get("content"));
 		}else{
-			FormatedResponse.get400Response(response, "fail", "fail");
+			FormatedResponse.get400Response(response, "Tickets could not be transferred");
 		}
 	}
-	
 }
 

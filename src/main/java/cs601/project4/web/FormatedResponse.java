@@ -14,20 +14,27 @@ import cs601.project4.dbservice.EventDBServiceImpl;
 import cs601.project4.dbservice.DBServiceProxy;
 
 public class FormatedResponse {
-	public static void get400Response(HttpServletResponse response, String title, String msg) throws IOException {
+	public static void get400Response(HttpServletResponse response, String msg) throws IOException {
 		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		response.setContentType("text/html");
-
+		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
-
-		out.println("<html><title>"+title+"</title><body>" + msg + "!</body></html>");
+		String outString = "{\"error\": \"" + msg + "\"}";
+		out.println(outString);
 	}
+	
+	public static void get404Response(HttpServletResponse response) throws IOException {
+		response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+		response.setContentType("application/json");
+		PrintWriter out = response.getWriter();
+		String outString = "{\"error\": \"Unknow Request\"}";
+		out.println(outString);
+	}
+	
 	
 	public static void get200OKJsonObjectResponse(HttpServletResponse response, Object o) throws IOException {
 		Gson gson = new Gson();
 		get200OKJsonStringResponse(response, gson.toJson(o));
 	}
-	
 	
 	public static void get200OKJsonStringResponse(HttpServletResponse response, String json) throws IOException {
 		response.setContentType("application/json");

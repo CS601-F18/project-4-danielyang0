@@ -25,21 +25,23 @@ public class DbHelper {
 	private static Logger logger = Logger.getLogger(RowProcessor.class);
 	//ThreadLocal variable, for every thread, maintain one and only one connection
 	private static ThreadLocal<Connection> conns = new ThreadLocal<Connection>();
-	private static PropertyReader reader = new PropertyReader("./config","project4.properties");
-	
-	static String timeZoneSettings = "?useSSL=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
-//	static String urlString = "jdbc:mysql://127.0.0.1:3306/event_ticket";
-//	static String urlString = "jdbc:mysql://sql.cs.usfca.edu:3306/user49";
-//	static String urlString = "jdbc:mysql://127.0.0.1:3307/user49";
-	static String urlString = null;
-	
-	static String utfSetting = "&characterEncoding=utf8";
-	static String userName = null;
-	static String pwd = null;
-	
+
+	//	PropertyReader reader = new PropertyReader("./config","project4.properties");
+
+	private static String dbUrl = null;
+	private static String userName = null;
+	private static String pwd = null;
+
+	public static void init(PropertyReader reader) {
+		String urlString = reader.readStringValue("mysqlurl");
+		String timeZoneSettings = "?useSSL=true&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
+		String utfSetting = "&characterEncoding=utf8";
+		dbUrl = urlString + timeZoneSettings + utfSetting;
+		userName = reader.readStringValue("username");
+		pwd = reader.readStringValue("pwd");
+	}
+
 	static {
-		File file = new File("./config/log4j.properties");
-		System.out.println(file.getAbsolutePath());
 		PropertyConfigurator.configure("./config/log4j.properties");
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
@@ -47,20 +49,15 @@ public class DbHelper {
 			logger.error("mysql driver not existed");
 			System.exit(1);
 		}
-		urlString = reader.readStringValue("mysqlurl");
-		userName = reader.readStringValue("username");
-		pwd = reader.readStringValue("pwd");
 	}
-	
-	
 
 	public static Connection getConnection() {
 		Connection conn = conns.get();
 		if(conn == null) {
 			try {
-//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "root","root");
-//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "user49","user49");
-				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, userName, pwd);
+				//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "root","root");
+				//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "user49","user49");
+				conn = DriverManager.getConnection(dbUrl, userName, pwd);
 				logger.debug("connected to db");
 				conns.set(conn);
 			} catch (SQLException e) {
@@ -69,15 +66,15 @@ public class DbHelper {
 		}
 		return conn;
 	}
-	
+
 	public static void main(String[] args) throws SQLException {
 		Connection con = DbHelper.getConnection();
-		
+
 		String selectStmt = "SELECT * FROM t_test"; 
-		
+
 		//create a statement object
 		PreparedStatement stmt = con.prepareStatement(selectStmt);
-		
+
 		//execute a query, which returns a ResultSet object
 		ResultSet result = stmt.executeQuery();
 
@@ -87,9 +84,9 @@ public class DbHelper {
 			int id = result.getInt("id");
 			System.out.println(id);
 		}
-		
+
 	}
-	
+
 	/**
 	 * close connection
 	 * @param connection
@@ -106,7 +103,7 @@ public class DbHelper {
 		}
 	}
 
-	
+
 	/**
 	 * execute a sql statement for insertion, deletion or updating
 	 * @param sql
@@ -123,7 +120,7 @@ public class DbHelper {
 		}
 	}
 
-	
+
 	/**
 	 * execute query statement for a set of multiple results
 	 * @param sql
@@ -141,7 +138,7 @@ public class DbHelper {
 		}
 	}
 
-	
+
 	/**
 	 * execute query statement for single result
 	 * @param sql
@@ -158,19 +155,19 @@ public class DbHelper {
 			throw e;
 		}
 	}
-	
+
 	public static <T> T getScalarResult(String sql, Class<T> c, Object... params) {
 		SqlExecuter sqlExecuter = new SqlExecuter();
 		try {
-			 T query = sqlExecuter.query(getConnection(), sql, new ScalarHandler<T>(), params);
-			 return query;
+			T query = sqlExecuter.query(getConnection(), sql, new ScalarHandler<T>(), params);
+			return query;
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return null;
 	}
-	
-	
+
+
 	/**
 	 * Get the last self-increased id in one db connection
 	 * @return
