@@ -91,7 +91,7 @@ public class UserServlet extends HttpServlet {
 		User user = null;
 		try {
 			user = us.getUserById(userid);
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 		}
 		if(user == null) {
 			FormatedResponse.get400Response(response, "User not found");
@@ -117,7 +117,7 @@ public class UserServlet extends HttpServlet {
 			if(user != null) {
 				tickets = ts.getUserTickets(userid);
 			}
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 		}
 		if(user == null) {
 			FormatedResponse.get400Response(response, "User not found");
@@ -186,9 +186,7 @@ public class UserServlet extends HttpServlet {
 		boolean success = false;
 		try {
 			success = ts.addTicketsToUserIfExists(userid, eventid, tickets);
-		} catch (SQLException e) {
-			FormatedResponse.get400Response(response, "Tickets could not be added");
-			return;
+		} catch (ServiceException e) {
 		}
 		if(success) {
 			JsonObject jsonObject = new JsonObject();
@@ -221,7 +219,9 @@ public class UserServlet extends HttpServlet {
 		boolean success = false;
 		try {
 			success = ts.transferTickets(userid, targetUserId, eventid, tickets);
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
+			FormatedResponse.get400Response(response, "Tickets could not be transfered");
+			return;
 		}
 		if(success) {
 			JsonObject jsonObject = new JsonObject();
@@ -246,7 +246,7 @@ public class UserServlet extends HttpServlet {
 			return;
 		}
 		String username = parsedObject.getUsername();
-		if(username == null) {
+		if(username == null || username.isEmpty()) {
 			FormatedResponse.get400Response(response, "User unsuccessfully created");
 			return;
 		}
@@ -259,7 +259,7 @@ public class UserServlet extends HttpServlet {
 			JsonObject jsonObject = new JsonObject();
 			jsonObject.addProperty("userid", newUserId);
 			FormatedResponse.get200OKJsonStringResponse(response, jsonObject.toString());
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 			FormatedResponse.get400Response(response, "User unsuccessfully created");
 		}
 	}

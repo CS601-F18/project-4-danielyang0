@@ -12,11 +12,7 @@ public class EventServiceTest {
 	@Test
 	public void testCreateEvent() {
 		EventDBService es = DBServiceProxy.getProxy(EventDBService.class, new EventDBServiceImpl());
-		try {
-			es.createEvent(2, "outdoor", 7);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		es.createEvent(2, "outdoor", 7);
 	}
 	
 	@Test
@@ -30,11 +26,7 @@ public class EventServiceTest {
 	public void testPurchase() {
 		DBServiceProxy.DEBUG_MODE = true;
 		EventDBService es = DBServiceProxy.getProxy(EventDBService.class, new EventDBServiceImpl());
-		try {
-			es.purchase(3, 9);
-		} catch (SQLException e) {
-			System.out.println(e.getMessage());
-		}
+		es.purchase(3, 9);
 	}
  	
 }

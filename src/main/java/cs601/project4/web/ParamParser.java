@@ -17,21 +17,31 @@ import com.google.gson.reflect.TypeToken;
 import cs601.project4.exception.ParamParseException;
 import cs601.project4.web.bean.BeansForJson;
 
+/**
+ * a class for parse URL path variable and varibles in request json data
+ * @author yangzun
+ *
+ */
 public class ParamParser {
+	/**
+	 * mainly
+	 * @param request
+	 * @param requestURITarget
+	 * @param pathVariables
+	 * @return
+	 */
 	public static boolean parsePath(HttpServletRequest request, String requestURITarget, Map<String, Object> pathVariables) {
 		pathVariables.clear();
 		String[] targetSplited = requestURITarget.split("/");
 		String requestURI = request.getRequestURI();
 		String[] splited = requestURI.split("/");
 		if(targetSplited.length != splited.length) {
-//			throw new ParamParseException("path not match");
 			return false;
 		}
 		//compare every splited token
 		for (int i = 0; i < targetSplited.length; i++) {
 			//in requestURI, if "//" exisited
 			if( i != 0 && splited[i].length() == 0 ){
-//				throw new ParamParseException("path not match");
 				return false;
 			}
 			String target = targetSplited[i];
@@ -42,7 +52,6 @@ public class ParamParser {
 					try {
 						intVariable = Integer.valueOf(splited[i]);
 					} catch (NumberFormatException e) {
-//						throw new ParamParseException(nameAndType[0] + " should be an integer");
 						return false;
 					}
 					pathVariables.put(nameAndType[0], intVariable);
@@ -51,12 +60,10 @@ public class ParamParser {
 				}
 			}else{
 				if(!target.equals(splited[i])) {
-//					throw new ParamParseException("not valid path");
 					return false;
 				}
 			}
 		}
-//		return pathVariables;
 		return true;
 	}
 

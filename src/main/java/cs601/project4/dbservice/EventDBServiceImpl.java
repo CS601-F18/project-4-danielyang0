@@ -26,25 +26,33 @@ public class EventDBServiceImpl implements EventDBService {
 	 * @throws SQLException
 	 */
 	@Override
-	public int createEvent(int userid, String eventName, int numTickets) throws SQLException {
+	public int createEvent(int userid, String eventName, int numTickets) {
 		Event event = new Event();
 		event.setUserid(userid);
 		event.setName(eventName);
 		event.setAvail(numTickets);
 		event.setPurchased(0);
-		eventDAO.addEvent(event);
+		try {
+			eventDAO.addEvent(event);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 		int newEventId = DbHelper.getLastIncreasedID();
 		return newEventId;
 	}
 
 	/**
-	 * get all the events in the db
+	 * get all the events in the table
 	 * @return
 	 * @throws SQLException
 	 */
 	@Override
-	public List<Event> listEvents() throws SQLException {
-		return eventDAO.getEvents();
+	public List<Event> listEvents() {
+		try {
+			return eventDAO.getEvents();
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 	}
 
 	/**
@@ -54,16 +62,28 @@ public class EventDBServiceImpl implements EventDBService {
 	 * @throws SQLException
 	 */
 	@Override
-	public Event getEvent(int id) throws SQLException {
-		return eventDAO.getEventById(id);
+	public Event getEvent(int id) {
+		try {
+			return eventDAO.getEventById(id);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 	}
 
+	/**
+	 * given multiple event ids, return the details of those events.
+	 */
 	@Override
-	public List<Event> getMultipleEvents(List<Integer> ids) throws SQLException {
+	public List<Event> getMultipleEvents(List<Integer> ids) {
 		List<Event> events = new ArrayList<>();
 		for (Integer id : ids) {
 			if(id == null) continue;
-			Event event = eventDAO.getEventById(id);
+			Event event;
+			try {
+				event = eventDAO.getEventById(id);
+			} catch (SQLException e) {
+				throw new ServiceException(e);
+			}
 			if(event != null) {
 				events.add(event); 
 			}
@@ -72,50 +92,43 @@ public class EventDBServiceImpl implements EventDBService {
 	}
 
 	/**
-	 * POST /purchase/{eventid}    {"userid": 0,"eventid": 0,"tickets": 0} -> Event tickets purchased || Tickets could not be purchased
+	 * decrease the number of avail and purchase tickets of an event
 	 * @throws SQLException 
 	 */
 	@Override
-	public void purchase(int eventid, int tickets) throws SQLException {
-		if(eventDAO.getEventById(eventid) == null) {
+	public void purchase(int eventid, int tickets) {
+		Event event = null;
+		try {
+			event = eventDAO.getEventById(eventid);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
+		if( event == null) {
 			throw new ServiceException("Event not found");
 		}
-		int rowsAffected = eventDAO.decreaseAvail(eventid, tickets);
+		int rowsAffected = 0;
+		try {
+			rowsAffected = eventDAO.decreaseAvail(eventid, tickets);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
+		
 		if(rowsAffected == 0) {
 			throw new ServiceException("Available tickets are not enough");
 		}
 	}
 
+	/**
+	 * increase the number of avail and purchase tickets of an event
+	 */
 	@Override
-	public void increaseAvailTickets(int eventid, int tickets) throws SQLException {
-		int rowsAffected = eventDAO.increaseAvail(eventid, tickets);
+	public void increaseAvailTickets(int eventid, int tickets) {
+		try {
+			eventDAO.increaseAvail(eventid, tickets);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 	}
-
-	//TO DO: call User Service API 
-	//	private boolean isUserExisted(int userid) {
-	//		
-	//		UserDAO userDAO = new UserDAO();
-	//		try {
-	//			return userDAO.getUserById(userid) != null;
-	//		} catch (SQLException e) {
-	//			e.printStackTrace();
-	//		}
-	//		return false;
-	//	}
-
-	//TO DO: call User Service API
-	//	private boolean increaseUserTicket(int userid, int eventid, int tikcets) {
-	//		TicketDAO ticketDAO = new TicketDAO();
-	//		try {
-	//			boolean success = ticketDAO.increaseTicketsForUser(userid, eventid, tikcets);
-	//			if(success) {
-	//				return true;
-	//			}
-	//		} catch (SQLException e) {
-	//			e.printStackTrace();
-	//		}
-	//		return false;
-	//	}
 
 	/**
 	 * decrease the available ticket number of an event

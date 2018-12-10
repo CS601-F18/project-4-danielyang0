@@ -6,10 +6,10 @@ import java.util.List;
 import cs601.project4.bean.Ticket;
 
 public interface TicketDBService {
-	public List<Ticket> getUserTickets(int userid) throws SQLException;
+	public List<Ticket> getUserTickets(int userid);
 
-	boolean addTicketsToUserIfExists(int userid, int eventid, int ticketsQuantity) throws SQLException;
+	boolean addTicketsToUserIfExists(int userid, int eventid, int ticketsQuantity);
 
-	boolean transferTickets(int userid, int targetUserid, int eventid, int ticketsQuantity) throws SQLException;
+	boolean transferTickets(int userid, int targetUserid, int eventid, int ticketsQuantity);
 
 }

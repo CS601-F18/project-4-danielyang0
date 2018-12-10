@@ -16,12 +16,18 @@ public class UserDAO {
 	 * @throws SQLException
 	 */
 	public int addUserWithUniqueName(User user) throws SQLException {
+		//stackoverflow
 		String sql = "insert into t_user (name) SELECT * FROM (SELECT ?) AS tmp WHERE NOT EXISTS (SELECT name FROM t_user WHERE name = ?) LIMIT 1;";
 		Object[] params = { user.getName(), user.getName()};//
 		int rows = DbHelper.executeSQL(sql, params);
 		return rows;
 	}
 	
+	/**
+	 * get all the users;
+	 * @return
+	 * @throws SQLException
+	 */
 	public List<User> getUsers() throws SQLException {
 		return DbHelper.getResult("select * from t_user", User.class);
 	}
@@ -40,6 +46,12 @@ public class UserDAO {
 		return DbHelper.getSingleResult("select * from t_user where id=?", User.class, id);
 	}
 	
+	/**
+	 * is there a user exists.
+	 * @param userid
+	 * @return
+	 * @throws SQLException
+	 */
 	public boolean isUserExsited(int userid) throws SQLException {
 		String sql = "select * from t_user WHERE id=?";
 		return DbHelper.getSingleResult(sql, User.class, userid) != null? true: false;

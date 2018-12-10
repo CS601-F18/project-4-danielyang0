@@ -62,11 +62,11 @@ public class EventServlet extends HttpServlet {
 		Map<String, Object> parsed = new HashMap<>();
 		if( ParamParser.parsePath(request, "/list", parsed) ){
 			//2.Get a list of all events  GET /list
-			doListEvents(response);
+			listEvents(response);
 		}else if(ParamParser.parsePath(request, "/{eventid:int}", parsed)){
 			int eventid = (Integer) parsed.get("eventid");
 			//3.Get details about a specific event GET /{eventid}
-			doGetOneEvent(response, eventid);
+			getOneEvent(response, eventid);
 		}else{
 			FormatedResponse.get404Response(response);
 		}
@@ -78,11 +78,11 @@ public class EventServlet extends HttpServlet {
 	 * @param response
 	 * @throws IOException
 	 */
-	private void doListEvents(HttpServletResponse response) throws IOException {
+	private void listEvents(HttpServletResponse response) throws IOException {
 		List<Event> events = null;
 		try {
 			events = es.listEvents();
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 		}
 		if(events == null) {
 			FormatedResponse.get400Response(response, "Events not found");
@@ -100,11 +100,11 @@ public class EventServlet extends HttpServlet {
 	 * @param eventid
 	 * @throws IOException
 	 */
-	private void doGetOneEvent(HttpServletResponse response, int eventid) throws IOException {
+	private void getOneEvent(HttpServletResponse response, int eventid) throws IOException {
 		Event event = null;
 		try {
 			event = es.getEvent(eventid);
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 		}
 		if(event == null) {
 			FormatedResponse.get400Response(response, "Event not found");
@@ -116,7 +116,7 @@ public class EventServlet extends HttpServlet {
 
 	/**
 	 * additonal: getEventDeitials
-	 * POST /listmany 
+	 * POST /group
 	 * request body  [{"eventid":1},{"eventid":2}]
 	 * response body 
 	 * [{
@@ -132,7 +132,6 @@ public class EventServlet extends HttpServlet {
 	 * @throws IOException
 	 */
 	private void getMultipleEvents(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//		List<BeansForJson.EventId> eventids = ParamParser.parseJsonToObject(request, BeansForJson.GetMultipleEventsRequestInfo.class).getData(); 
 		List<BeansForJson.EventId> eventids = ParamParser.<List<BeansForJson.EventId>>parseJsonToObject(request, new TypeToken<List<BeansForJson.EventId>>(){}.getType()); 
 		if(eventids == null) {
 			FormatedResponse.get400Response(response, "Bad Request");
@@ -143,7 +142,7 @@ public class EventServlet extends HttpServlet {
 		List<Event> events = null;
 		try {
 			events = es.getMultipleEvents(ids);
-		} catch (SQLException e) {
+		} catch (ServiceException e) {
 			events = new ArrayList<>();
 		}
 		List<BeansForJson.EventDetail> eventDetails = new ArrayList<>();
@@ -152,7 +151,6 @@ public class EventServlet extends HttpServlet {
 					e.getId(), e.getName(), e.getUserid(), e.getAvail(), e.getPurchased())
 					);  
 		});
-		//		BeansForJson.UserDetailsEventDetails responseObject = new BeansForJson.UserDetailsEventDetails(userId, userName, eventDetails);
 		FormatedResponse.get200OKJsonObjectResponse(response, eventDetails);
 	}
 
@@ -170,7 +168,7 @@ public class EventServlet extends HttpServlet {
 		if(ParamParser.parsePath(request, "/create", parsed)) {
 			//1.Create a new event
 			//POST /create
-			CreateEvent(request, response);
+			createEvent(request, response);
 		}else if(ParamParser.parsePath(request, "/purchase/{eventid:int}",parsed)) {
 			//4.Purchase tickets for an event, updating the user's ticket lists
 			//POST /purchase/{eventid}
@@ -184,6 +182,14 @@ public class EventServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * purchase tickets for an event: decrease the avil number of tickets for the event,
+	 * and increase the tickets number for an user
+	 * @param request
+	 * @param response
+	 * @param eventid
+	 * @throws IOException
+	 */
 	private void purchaseTickets(HttpServletRequest request, HttpServletResponse response, int eventid) throws IOException {
 		PurchaseTicketRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.PurchaseTicketRequestInfo.class);
 		if(postObject == null) {
@@ -204,11 +210,11 @@ public class EventServlet extends HttpServlet {
 		//decrease tickets of an event
 		try {
 			es.purchase(eventid, tickets);
-		} catch (SQLException | ServiceException e1) {
+		} catch (ServiceException e) {
 			FormatedResponse.get400Response(response, "Tickets could not be purchased");
 			return;
 		}
-		boolean success = addTicketToUserByAPI(userid, eventid, tickets, response);
+		boolean success = addTicketToUser(userid, eventid, tickets, response);
 		if(success) {
 			JsonObject jsonObject = new JsonObject();
 			jsonObject.addProperty("OK", "Event tickets purchased");
@@ -216,13 +222,24 @@ public class EventServlet extends HttpServlet {
 		}else{
 			try {
 				es.increaseAvailTickets(eventid, tickets);
-			} catch (ServiceException | SQLException e) {
+			} catch (ServiceException e) {
+				logger.warning("revert purchase failed");
 			}
 			FormatedResponse.get400Response(response, "Tickets could not be purchased");
 		}
 	}
 	
-	private boolean addTicketToUserByAPI(int userid, int eventid, int tickets, HttpServletResponse response) throws IOException {
+	
+	/**
+	 * use httpConnection to call user service to increase the number of tickets of an user
+	 * @param userid
+	 * @param eventid
+	 * @param tickets
+	 * @param response
+	 * @return
+	 * @throws IOException
+	 */
+	private boolean addTicketToUser(int userid, int eventid, int tickets, HttpServletResponse response) throws IOException {
 		Map<String, String> result = null;
 		BeansForJson.AddTicketsToUserRequestInfo postData = new BeansForJson.AddTicketsToUserRequestInfo(eventid, tickets);
 		try {
@@ -230,12 +247,7 @@ public class EventServlet extends HttpServlet {
 		} catch (IOException e) {
 			return false;
 		}
-		if(result.get("status").equals("200")) {
-			return true;
-
-		}else{
-			return false;
-		}
+		return "200".equals(result.get("status"));
 	}
 	
 	/**
@@ -245,13 +257,12 @@ public class EventServlet extends HttpServlet {
 	 * @param response
 	 * @throws IOException
 	 */
-	private void CreateEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	private void createEvent(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		CreateEventRequestInfo postObject = ParamParser.parseJsonToObject(request, BeansForJson.CreateEventRequestInfo.class);
 		if(postObject == null) {
 			FormatedResponse.get400Response(response, "Event unsuccessfully created");
 			return;
 		}
-
 		int userid = postObject.getUserid();
 		int numtickets = postObject.getNumtickets();
 		String eventname = postObject.getEventname();
@@ -262,11 +273,16 @@ public class EventServlet extends HttpServlet {
 		try {
 			int newEventid = es.createEvent(userid, eventname, numtickets);
 			FormatedResponse.get200OKJsonStringResponse(response, "{\"eventid\":"+newEventid+"}");
-		} catch (SQLException | ServiceException e) {
+		} catch (ServiceException e) {
 			FormatedResponse.get400Response(response, "Event unsuccessfully created");
 		}
 	}
-
+	
+	/**
+	 * call user service API to see if the user exists or not
+	 * @param userid
+	 * @return
+	 */
 	private boolean isUserExisted(int userid) {
 		Map<String, String> result = null;
 		try {
@@ -276,8 +292,5 @@ public class EventServlet extends HttpServlet {
 		}
 		return "200".equals(result.get("status"));
 	}
-	
-
-
 
 }

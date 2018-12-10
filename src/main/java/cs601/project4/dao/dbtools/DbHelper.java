@@ -26,8 +26,6 @@ public class DbHelper {
 	//ThreadLocal variable, for every thread, maintain one and only one connection
 	private static ThreadLocal<Connection> conns = new ThreadLocal<Connection>();
 
-	//	PropertyReader reader = new PropertyReader("./config","project4.properties");
-
 	private static String dbUrl = null;
 	private static String userName = null;
 	private static String pwd = null;
@@ -55,8 +53,6 @@ public class DbHelper {
 		Connection conn = conns.get();
 		if(conn == null) {
 			try {
-				//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "root","root");
-				//				conn = DriverManager.getConnection(urlString + timeZoneSettings + utfSetting, "user49","user49");
 				conn = DriverManager.getConnection(dbUrl, userName, pwd);
 				logger.debug("connected to db");
 				conns.set(conn);
@@ -65,26 +61,6 @@ public class DbHelper {
 			}
 		}
 		return conn;
-	}
-
-	public static void main(String[] args) throws SQLException {
-		Connection con = DbHelper.getConnection();
-
-		String selectStmt = "SELECT * FROM t_test"; 
-
-		//create a statement object
-		PreparedStatement stmt = con.prepareStatement(selectStmt);
-
-		//execute a query, which returns a ResultSet object
-		ResultSet result = stmt.executeQuery();
-
-		//iterate over the ResultSet
-		while (result.next()) {
-			//for each result, get the value of the columns name and id
-			int id = result.getInt("id");
-			System.out.println(id);
-		}
-
 	}
 
 	/**
@@ -156,6 +132,7 @@ public class DbHelper {
 		}
 	}
 
+	
 	public static <T> T getScalarResult(String sql, Class<T> c, Object... params) {
 		SqlExecuter sqlExecuter = new SqlExecuter();
 		try {

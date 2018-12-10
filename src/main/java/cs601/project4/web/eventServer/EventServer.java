@@ -19,7 +19,6 @@ public class EventServer {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-//		int PORT = 8081;
 		int PORT = reader.readIntValue("eventPort");
 		//Example from http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
 		

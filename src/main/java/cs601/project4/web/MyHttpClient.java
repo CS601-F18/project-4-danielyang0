@@ -20,6 +20,13 @@ import com.google.gson.JsonObject;
 public class MyHttpClient {
 	
 	private static Gson gson = new Gson();
+	
+	/**
+	 * http GET method
+	 * @param urlString
+	 * @return
+	 * @throws IOException
+	 */
 	public static Map<String, String> fetchGet(String urlString) throws IOException {
 		Map<String, String> map = new HashMap<>();
 		URL url = new URL(urlString);
@@ -34,13 +41,17 @@ public class MyHttpClient {
 			content.append(inputLine).append("\n");
 		}
 		in.close();
-//		logger.info(status+"");
-//		logger.info(content.toString());
 		map.put("content", content.toString());
 		return map;
 	}
 	
-	
+	/**
+	 * http POST connection
+	 * @param urlString
+	 * @param requestBody
+	 * @return
+	 * @throws IOException
+	 */
 	public static <T> Map<String,String> fetchPostJsonString(String urlString, String requestBody) throws IOException {
 		Map<String, String> map = new HashMap<>();
 		URL url = new URL(urlString);

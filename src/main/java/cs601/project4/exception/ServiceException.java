@@ -1,5 +1,10 @@
 package cs601.project4.exception;
 
+/**
+ * used exclusively in classes under dbservice package
+ * @author yangzun
+ *
+ */
 public class ServiceException extends RuntimeException {
 	public ServiceException() {
 	}

@@ -7,16 +7,16 @@ import cs601.project4.bean.Event;
 
 public interface EventDBService {
 
-	public int createEvent(int userid, String eventName, int numTickets) throws SQLException;
+	public int createEvent(int userid, String eventName, int numTickets);
 
-	public void purchase(int eventid, int tickets) throws SQLException;
+	public void purchase(int eventid, int tickets);
 
-	public List<Event> listEvents() throws SQLException;
+	public List<Event> listEvents();
 
-	public Event getEvent(int id) throws SQLException;
+	public Event getEvent(int id);
 
-	void increaseAvailTickets(int eventid, int tickets) throws SQLException;
+	void increaseAvailTickets(int eventid, int tickets);
 
-	public List<Event> getMultipleEvents(List<Integer> ids) throws SQLException;
+	public List<Event> getMultipleEvents(List<Integer> ids);
 
 }

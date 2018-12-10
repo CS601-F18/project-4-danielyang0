@@ -14,12 +14,8 @@ public class ProxyTest {
 		DBServiceProxy.DEBUG_MODE = true;
 		try {
 			UserDBService proxy = DBServiceProxy.getProxy(UserDBService.class, new UserDBServiceImpl());
-			try {
-				long id = proxy.createUser("somebody");
-				System.out.println("created: userid:" + id);
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			long id = proxy.createUser("somebody");
+			System.out.println("created: userid:" + id);
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 		}

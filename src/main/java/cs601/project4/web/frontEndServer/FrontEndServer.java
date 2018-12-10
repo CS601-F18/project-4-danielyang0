@@ -16,7 +16,6 @@ public class FrontEndServer {
 	 */
 	public static void main(String[] args) throws Exception {
 		
-//		int PORT = 8080;
 		int PORT = reader.readIntValue("frontPort");
 		//Example from http://www.eclipse.org/jetty/documentation/current/embedding-jetty.html
 		

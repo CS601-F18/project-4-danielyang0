@@ -9,6 +9,14 @@ import cs601.project4.bean.Ticket;
 import cs601.project4.dao.dbtools.DbHelper;
 
 public class TicketDAO {
+	/**
+	 * add a new tickt to DB
+	 * @param userid
+	 * @param eventid
+	 * @param quantity
+	 * @return
+	 * @throws SQLException
+	 */
 	public int addTicket(int userid, int eventid, int quantity) throws SQLException {
 		String sql = "insert into t_ticket(userid,eventid,quantity) values(?,?,?)";
 		Object[] params = { userid, eventid, quantity};
@@ -29,7 +37,7 @@ public class TicketDAO {
 	
 	
 	/**
-	 * this method will lock the table t_ticket
+	 * decrease the tickets which belong to a user
 	 * @param userid
 	 * @param eventid
 	 * @param ticketsQuantity
@@ -37,51 +45,16 @@ public class TicketDAO {
 	 * @throws SQLException
 	 */
 	public boolean decreaseTicketsFromUser(int userid, int eventid, int ticketsQuantity) throws SQLException {
-		//TODO: if same user has two rows for same event, this sql is not correct
 		String sql = "update t_ticket set quantity=quantity-? WHERE userid=? AND eventid=? AND quantity >=?";
 		Object[] params = { ticketsQuantity, userid, eventid, ticketsQuantity };
 		int rowsAffected = DbHelper.executeSQL(sql, params);
-		return rowsAffected==0? false: true;
+		return rowsAffected != 0;
+		//update t_ticket set quantity=quantity-1 WHERE userid=2 AND eventid=2 AND quantity >=1
 	}
 	
-	/**
-	 * add 0 tickets of an event for a user if the record does not exist
-	 * lock the record
-	 * @param userid
-	 * @param eventid
-	 * @return the ticket id
-	 * @throws SQLException
-	 */
-//	int initTicketsForUserAndLock(int userid, int eventid ) throws SQLException {
-//		String sql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0" 
-//		+ " WHERE NOT EXISTS (SELECT userid FROM t_ticket WHERE userid = ? AND eventid= ? for update) LIMIT 1;";
-//		Object[] params = { userid, eventid, userid, eventid };
-//		int rows = DbHelper.executeSQL(sql, params);
-//		if(rows==0) {
-//			String sql2 = "SELECT id FROM t_ticket WHERE userid = ? AND eventid= ?";
-//			int ticketid = DbHelper.getScalarResult(sql2, Integer.class, new Object[]{userid, eventid}).intValue();
-//			return ticketid;
-//		}else {
-//			return DbHelper.getLastIncreasedID();
-//		}
-//	}
-	int initTicketsForUserAndLock(int userid, int eventid ) throws SQLException {
-		String sql2 = "SELECT * FROM t_ticket WHERE userid = ? AND eventid= ? for update";
-		Ticket tkt = DbHelper.getSingleResult(sql2, Ticket.class, new Object[]{userid, eventid});
-		if(tkt == null) {
-			String insertSql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0";
-			Object[] params = { userid, eventid };
-			int rows = DbHelper.executeSQL(insertSql, params);
-			return DbHelper.getLastIncreasedID();
-		}else{
-			return tkt.getId();
-		}
-	}
-	
-
 	
 	/**
-	 * this method will lock the table
+	 * add some tickets to a user
 	 * @param userid
 	 * @param eventid
 	 * @param ticketsQuantity
@@ -92,7 +65,28 @@ public class TicketDAO {
 		int ticketID = initTicketsForUserAndLock(userid, eventid);
 		String sql = "UPDATE t_ticket SET quantity=quantity+? WHERE id=?";
 		Object[] params = { ticketsQuantity, ticketID };
-		return DbHelper.executeSQL(sql, params)==0? false:true;
+		return DbHelper.executeSQL(sql, params) != 0;
+	}
+	
+	/**
+	 * add 0 tickets of an event for a user if the record does not exist
+	 * lock the record
+	 * @param userid
+	 * @param eventid
+	 * @return the ticket id
+	 * @throws SQLException
+	 */
+	int initTicketsForUserAndLock(int userid, int eventid ) throws SQLException {
+		String sql = "SELECT * FROM t_ticket WHERE userid = ? AND eventid= ? for update";
+		Ticket ticket = DbHelper.getSingleResult(sql, Ticket.class, new Object[]{userid, eventid});
+		if(ticket == null) {
+			String insertSql = "INSERT INTO t_ticket (userid,eventid,quantity) SELECT ?,?,0";
+			Object[] params = { userid, eventid };
+			DbHelper.executeSQL(insertSql, params);
+			return DbHelper.getLastIncreasedID();
+		}else{
+			return ticket.getId();
+		}
 	}
 	
 }

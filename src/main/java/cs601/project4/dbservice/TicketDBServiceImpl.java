@@ -16,55 +16,72 @@ public class TicketDBServiceImpl implements TicketDBService{
 	private UserDAO userDAO = new UserDAO();
 	
 	/**
-	 * GET /{userid} () -> {"userid": 0,"username": "string","tickets": [{"eventid": 0}]} || User not found
+	 * get tickets which belongs to a user
 	 * 
 	 */
 	@Override
-	public List<Ticket> getUserTickets(int userid) throws SQLException {
-		List<Ticket> tickets = ticketDAO.getTicketByUserId(userid);
-//		for (Ticket ticket : tickets) {
-//			System.out.println("eventid:"+ticket.getEventid()+", ticketsQuantity:"+ticket.getQuantity());
-//		}
+	public List<Ticket> getUserTickets(int userid) {
+		List<Ticket> tickets = null;
+		try {
+			tickets = ticketDAO.getTicketByUserId(userid);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 		return tickets;
-//		List<Integer> ticketIds = new ArrayList<>();
-//		tickets.forEach((e) -> {ticketIds.add(e.getEventid());});
-//		return ticketIds;
 	}
 	
+	/**
+	 * if user exist, increase tickets number for a user, otherwise, do nothing
+	 */
 	@Override
-	public boolean addTicketsToUserIfExists(int userid, int eventid, int ticketsQuantity) throws SQLException {
-		User user = userDAO.getUserById(userid);
-		if(user == null) {
-			return false;
+	public boolean addTicketsToUserIfExists(int userid, int eventid, int ticketsQuantity) {
+		try {
+			User user = userDAO.getUserById(userid);
+			if(user == null) {
+				return false;
+			}
+			return ticketDAO.increaseTicketsForUser(userid, eventid, ticketsQuantity);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
 		}
-		return ticketDAO.increaseTicketsForUser(userid, eventid, ticketsQuantity);
 	}
 	
 	
 	/**
-	 * POST /{userid}/tickets/transfer  {"eventid": 0,"tickets": 0,"targetuser": 0} -> 
-	 * Event tickets transfered || Tickets could not be transfered
 	 * 
 	 * transfer ticket from user to target user
 	 */
 	@Override
-	public boolean transferTickets(int userid, int targetUserid, int eventid, int ticketsQuantity) throws SQLException {
-		User user = userDAO.getUserById(userid);
+	public boolean transferTickets(int userid, int targetUserid, int eventid, int ticketsQuantity) {
+		User user = null;
+		try {
+			user = userDAO.getUserById(userid);
+		} catch (SQLException e) {
+		}
 		if(user == null) {
 			return false;
-//			throw new ServiceException("User who transfer tickets is not found");
 		}
-		User targetUser = userDAO.getUserById(targetUserid);
+		User targetUser = null;
+		try {
+			targetUser = userDAO.getUserById(targetUserid);
+		} catch (SQLException e) {
+		}
 		if(targetUser == null) {
 			return false;
-//			throw new ServiceException("User who accept tickets is not found");
 		}
-		boolean decreaseSuccess = ticketDAO.decreaseTicketsFromUser(userid, eventid, ticketsQuantity);
+		boolean decreaseSuccess = false;
+		try {
+			decreaseSuccess = ticketDAO.decreaseTicketsFromUser(userid, eventid, ticketsQuantity);
+		} catch (SQLException e) {
+		}
 		if(!decreaseSuccess) {
-//			return false;
 			throw new ServiceException("user tickets quantity is not enough");
 		}
-		return ticketDAO.increaseTicketsForUser(targetUserid, eventid, ticketsQuantity);
+		try {
+			return ticketDAO.increaseTicketsForUser(targetUserid, eventid, ticketsQuantity);
+		} catch (SQLException e) {
+			throw new ServiceException(e);
+		}
 	}
 	
 }

@@ -14,12 +14,8 @@ public class UserServiceTest {
 	@Test
 	public void testCreateUser() {
 		UserDBServiceImpl us = new UserDBServiceImpl();
-		try {
-			long id = us.createUser("john");
-			System.out.println(id);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		long id = us.createUser("john");
+		System.out.println(id);
 	}
 	
 	@Test
@@ -32,13 +28,9 @@ public class UserServiceTest {
 	public void testGetUserDetails() {
 		DBServiceProxy.DEBUG_MODE = true;
 		UserDBService us = DBServiceProxy.getProxy(UserDBService.class, new UserDBServiceImpl()); 
-		try {
 //			us.getUserDetails(1);
-			User userById = us.getUserById(1);
-			System.out.println(userById);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		User userById = us.getUserById(1);
+		System.out.println(userById);
 	}
 	
 	@Test
@@ -46,11 +38,7 @@ public class UserServiceTest {
 		DBServiceProxy.DEBUG_MODE = true;
 		TicketDBService us = DBServiceProxy.getProxy(TicketDBService.class, new TicketDBServiceImpl()); 
 		//user 1 transfer 5 tickets of event 3 to user 2 
-		try {
-			us.transferTickets(1,2,3,5);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		us.transferTickets(1,2,3,5);
 	}
 
  	
